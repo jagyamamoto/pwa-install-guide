@@ -45,6 +45,50 @@
 
     <hr>
 
+    <h2><span class="num">背景</span>なぜPWAという選択なのか</h2>
+    <p>
+      「ホーム画面に追加」の作り込みに入る前に、そもそもPWA（ホーム画面に追加して使うWebアプリ）
+      という選択自体にどんな意味があるかを書いておきます。
+    </p>
+    <h3>メリット</h3>
+    <ul>
+      <li><strong>審査・登録料が不要。</strong>App Store / Google Playへの年間登録料や審査、更新のたびの再審査なしで配布できます</li>
+      <li><strong>iOS/Androidを同時に展開できる。</strong>ネイティブアプリのように2つ作り分ける必要がありません</li>
+      <li><strong>通知が出せる。バッジ表示もできる。</strong>ホーム画面のアイコンに未読件数を出したり、Web Pushで通知を送れます</li>
+      <li><strong>0円から始められる。</strong>Cloudflareなどのホスティングを使えば、月額のサーバー費用なしで公開できます</li>
+    </ul>
+    <h3>デメリット・課題</h3>
+    <ul>
+      <li><strong>通知には「ホーム画面に追加」が必須です。</strong>ブラウザで見てもらうだけでは、通知の許可を求めること自体ができません。この一手間を越えないと、PWAの利点は使えないままです</li>
+      <li><strong>その「ホーム画面に追加」自体が、スマホに不慣れな人には難しい。</strong>ここが、このプロジェクトの本題です</li>
+    </ul>
+
+    <h2><span class="num">正体</span>Webアプリを、かんたんにアプリ化するためのプログラム</h2>
+    <p>
+      かんたんに言うと、<strong>Webアプリをスマホにアプリとして入れてもらうための、
+      導入専用プログラム（ティーザープログラム）</strong>です。上のデメリットの
+      「ホーム画面に追加が難しい」を解決するために作りました。
+    </p>
+    <ul>
+      <li><strong>ブラウザを自動判別。</strong>iOSのSafari/Chromeを見分けて、そのブラウザに合った手順を出します</li>
+      <li><strong>OSを自動判別。</strong>iOS/Androidを見分けて、それぞれのやり方を出します</li>
+      <li><strong>言語を自動判別。</strong>端末の言語設定を見て、表示する言語を自動で切り替えます</li>
+      <li><strong>一度入れたら、二度と出てきません。</strong>インストール後は案内そのものを表示しない設計です</li>
+    </ul>
+
+    <h2><span class="num">用途</span>こんなときに</h2>
+    <ul>
+      <li>
+        <strong>通知を出したいアプリを、格安で運用したいとき</strong>
+        <ul>
+          <li>会員向け通知システム</li>
+          <li>町内会・自治会の回覧システム（実例: <a href="https://github.com/jagyamamoto/kairanban-app">kairanban-app</a>）</li>
+          <li>社内・グループ向けの共有システム</li>
+        </ul>
+      </li>
+      <li><strong>Apple/Googleの審査基準に合わない内容を、Webアプリとして配布したいとき</strong></li>
+    </ul>
+
     <h2><span class="num">問題</span>なぜ普通のマニュアルは失敗するのか</h2>
     <p>
       iOSでは、Webアプリをホーム画面に置く操作をアプリ側から自動化できません。
