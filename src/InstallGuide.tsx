@@ -1,68 +1,49 @@
-// PWA「ホーム画面に追加」案内 — 汎用版(高齢者・スマホに不慣れな人向け)
+// PWA「ホーム画面に追加」案内 — 汎用版
 //
-// 設計の根拠と実測値は ../README.md を必ず読むこと。要点だけ再掲する:
+// 高齢者・スマホに不慣れな人が**自力で**ホーム画面にアイコンを置けるようにする部品。
+// 亀戸七丁目北部町会アプリで、実機テストと修正を繰り返して到達した形をそのまま部品化した。
 //
-//  1. 記憶ゼロ設計
-//     利用者は「見たものを覚えて操作する」ことができない前提。よって手順を
-//     自動で進めない。5手順を実物スクリーンショット付きで常時ぜんぶ出し、
-//     利用者は自分の画面と写真を見比べるだけでよい(再認のみ)。
-//     ⚠ 時間で自動的に進める実装は実機テストで失敗した。戻さないこと。
-//
-//  2. 共有シートに隠れない位置
-//     iOSの共有シートは画面下から現れ、上端は画面の上から約42.7%。
-//     iPhone 17e(390x844pt) / iPhone SE第3世代(375x667pt) の実測で比率はほぼ一定。
-//     案内はこの範囲(上から42%以内)に収める。
-//     シート表示中もページのJS・アニメーションは動き続ける(実測済み)。
-//
-//  3. 見た目をアプリ本体と変える
-//     アプリと同じ配色だと「指示」だと気づかれない。黄色地+黒文字
-//     (道路標識と同じ最高コントラスト)にして別物だと一目で分かるようにする。
-//
-//  4. 設定中は背景を完全に隠す
-//     後ろに通常画面が見えていると「どちらを操作するのか」で迷う。
-//
-//  5. 閉じても必ず戻れる
-//     ×で閉じた**その瞬間**に小さな入口へ切り替える。リロード待ちにすると
-//     誤って閉じた人が詰む。メニューにも常設の入口を置く。
-//
-//  6. iOSでは「追加済みか」を端末側で判定できない
-//     Safariとホーム画面アプリは保存領域が別。ホーム画面から起動したときに
-//     サーバへ記録し、Safari側はそれを読む(onInstalled / installed プロパティ)。
-import { useEffect, useRef, useState } from "react";
+// ⚠ 設計の根拠(実測値と、失敗して捨てた実装)は ../README.md に全部書いてある。
+//   コードだけ写して根拠を捨てると、同じ失敗を必ず繰り返す。特に次の5つ:
+//     1. 手順を時間で自動送りしない(実機で必ずズレる)
+//     2. 帯は共有ボタンと**反対側**に置く(自分で隠す/色が同化するため)
+//     3. 全面を1色で塗らない(ブラウザのバーまで染まり、共有ボタンが同化する)
+//     4. 共有シートの題名は document.title と og:title の**両方**を書き換える
+//     5. その題名は**15文字以内**(超えると「…」で切れる)
+import { useEffect, useState } from "react";
 import { type Lang, type Strings, STRINGS } from "./strings";
 
-export type InstallStep = {
-  /** 押す場所だけを切り抜いた実機スクリーンショット。赤い印は1枚に1つ。 */
-  img: string;
-  /** 読み上げ用。画面に出ている文字をそのまま含める。 */
-  alt: string;
-  /** 手順の説明。画面に表示されている文字を鍵括弧つきでそのまま使う。 */
-  label: string;
-};
+export type Step = { img?: string; alt?: string; label: string };
 
 export type InstallGuideConfig = {
-  /** 本番URL。Safari以外で開かれたときのコピー用。 */
+  /** 本番URL。アプリ内ブラウザから抜けるときのコピー用。 */
   appUrl: string;
-  /** 共有シート最上部に注入する指示文(約20文字で省略される)。 */
-  injectedTitle?: string;
-  /** iOSの手順。省略すると STRINGS の既定文言＋既定の画像パスを使う。 */
-  steps: InstallStep[];
-  /** 完成後のホーム画面アイコン画像(実機の切り抜き)。 */
+  /** 画像の置き場所。assets/ をここへ配置する(例: "/help/img")。 */
+  assetBase: string;
+  /** 完成後のホーム画面アイコンの写真(アプリ固有。実機から切り出す)。 */
   doneIconImg?: string;
-  /** localStorage のキー接頭辞。1つの端末で複数アプリを使う場合に分ける。 */
-  storagePrefix?: string;
-  /** 帯・入口の配色。既定は黄色地+黒文字(変更は非推奨)。 */
-  theme?: { bg?: string; fg?: string };
-  /** 表示言語。 */
+  /** 表示言語。既定は ja。 */
   lang?: Lang;
-  /** ホーム画面から起動したことを検知したときに呼ばれる(サーバ記録用)。 */
-  onInstalled?: () => void;
+  /** localStorage キーの接頭辞。1端末で複数アプリを使うときに分ける。 */
+  storagePrefix?: string;
   /**
-   * 追加済みだと分かっている場合 true。true の間は案内を一切出さない。
-   * iOSはSafariとホーム画面アプリで保存領域が別なので、サーバ側の記録を渡す。
+   * 追加済みだと分かっているとき true。true の間は案内を出さない。
+   * ⚠ iOSはSafariとホーム画面アプリで**保存領域が別**なので端末側では判定できない。
+   *   サーバ側の記録を渡すこと(README「追加済みかの判定」)。
    */
   installed?: boolean;
+  /** ホーム画面から起動したことを検知したとき。サーバへ記録する用。 */
+  onInstalled?: () => void;
+  /** Android/Chromeの「1回押すだけ」が使えるか。 */
+  oneTapAvailable?: boolean;
+  /** その「1回押すだけ」を実行する。 */
+  onOneTapInstall?: () => Promise<unknown> | void;
+  /** 手順を差し替えたいとき(通常は不要。既定で同梱の写真を使う)。 */
+  iosSafariSteps?: Step[];
+  iosChromeSteps?: Step[];
 };
+
+/* ============ 端末とブラウザの判定 ============ */
 
 function isStandalone(): boolean {
   return (
@@ -76,19 +57,84 @@ export function isIOS(): boolean {
 }
 
 export function isAndroid(): boolean {
-  return /Android/.test(navigator.userAgent);
+  return /Android/i.test(navigator.userAgent);
+}
+
+/** iOSのSafari本体か。LINE・Chrome等のアプリ内ブラウザを除外する。 */
+export function isIOSSafari(): boolean {
+  if (!isIOS()) return false;
+  return !/CriOS|FxiOS|EdgiOS|Line\/|FBAN|FBAV|Instagram|GSA\/|YJApp|Twitter/i.test(
+    navigator.userAgent,
+  );
+}
+
+/** iPhoneのChromeか(UAに CriOS が入る)。 */
+export function isIOSChrome(): boolean {
+  return isIOS() && /CriOS/i.test(navigator.userAgent);
+}
+
+/** LINEのアプリ内ブラウザか。 */
+export function isLineBrowser(): boolean {
+  return /Line\//i.test(navigator.userAgent);
+}
+
+/** iOSのバージョン(例: 18.4)。取れないときは null。 */
+export function iosVersion(): number | null {
+  const m = navigator.userAgent.match(/OS (\d+)[_.](\d+)/);
+  return m ? Number(m[1]) + Number(m[2]) / 10 : null;
 }
 
 /**
- * iOSのSafari本体か。
- * LINE・Gmail・Chrome(CriOS)などのアプリ内ブラウザでは「ホーム画面に追加」が
- * できないため、手順を見せずSafariへ移る案内だけを出す。
+ * Safari以外のブラウザから追加できるのは **iOS 16.4 以降**。16.3以前はSafari限定。
+ * 出典: MDN https://developer.mozilla.org/ja/docs/Web/Progressive_web_apps/Guides/Installing
  */
-export function isIOSSafari(): boolean {
-  const ua = navigator.userAgent;
-  if (!isIOS()) return false;
-  return !/CriOS|FxiOS|EdgiOS|Line\/|FBAN|FBAV|Instagram|GSA\/|YJApp|Twitter/i.test(ua);
+export function canInstallOutsideSafari(): boolean {
+  const v = iosVersion();
+  return v === null ? true : v >= 16.4; // 判定できないときは出す側に倒す
 }
+
+/* ============ 共有シートの題名 ============ */
+
+/**
+ * 共有シートの最上部に出る題名を書き換える。
+ * ⚠ Safariは document.title より **og:title を優先する**。両方書き換えること。
+ *   片方だけにして、元の題名が出てしまった事故がある(実機で確認)。
+ * ⚠ 文字数は **15文字以内**。16文字を超えると末尾が「…」で切られる(実機で2回確認)。
+ */
+export function setShareTitle(text: string): () => void {
+  const prevDoc = document.title;
+  const og = document.querySelector('meta[property="og:title"]');
+  const prevOg = og?.getAttribute("content") ?? null;
+  document.title = text;
+  og?.setAttribute("content", text);
+  return () => {
+    document.title = prevDoc;
+    if (og && prevOg !== null) og.setAttribute("content", prevOg);
+  };
+}
+
+/* ============ 既定の手順(写真は assets/ に同梱) ============ */
+
+function defaultSafariSteps(base: string, t: Strings): Step[] {
+  return [
+    { img: `${base}/ios-safari/1-dots.png`, alt: t.altDots, label: t.sfStep1 },
+    { img: `${base}/ios-safari/2-share.png`, alt: t.altShare, label: t.sfStep2 },
+    { img: `${base}/ios-safari/3-showmore.png`, alt: t.altShowMore, label: t.sfStep3 },
+    { img: `${base}/ios-safari/4-addhome.png`, alt: t.altAddHome, label: t.sfStep4 },
+    { img: `${base}/ios-safari/5-add.png`, alt: t.altAdd, label: t.sfStep5 },
+  ];
+}
+
+function defaultChromeSteps(base: string, t: Strings): Step[] {
+  return [
+    { img: `${base}/ios-chrome/1-share.jpg`, alt: t.altChromeShare, label: t.crStep1 },
+    { img: `${base}/ios-chrome/2-showmore.jpg`, alt: t.altShowMore, label: t.crStep2 },
+    { img: `${base}/ios-chrome/3-addhome.jpg`, alt: t.altAddHome, label: t.crStep3 },
+    { img: `${base}/ios-chrome/4-add.jpg`, alt: t.altAdd, label: t.crStep4 },
+  ];
+}
+
+/* ============ 部品 ============ */
 
 function CopyUrlButton({ url, t }: { url: string; t: Strings }) {
   const [copied, setCopied] = useState(false);
@@ -100,7 +146,6 @@ function CopyUrlButton({ url, t }: { url: string; t: Strings }) {
           await navigator.clipboard.writeText(url);
           setCopied(true);
         } catch {
-          // clipboard API が使えない端末向けの保険
           const ta = document.createElement("textarea");
           ta.value = url;
           document.body.appendChild(ta);
@@ -120,32 +165,40 @@ function CopyUrlButton({ url, t }: { url: string; t: Strings }) {
   );
 }
 
-/** 画面上部に固定する案内。手順を常時ぜんぶ表示する(自動で進めない)。 */
+/**
+ * 手順の帯。**手順は常時ぜんぶ出す。自動で送らない。**
+ * 利用者は自分の画面と写真を見比べて選ぶだけでよい(記憶も待ちも不要)。
+ */
 function GuideBand({
-  cfg,
+  steps,
   t,
+  place,
   onDismiss,
   onRestart,
 }: {
-  cfg: InstallGuideConfig;
+  steps: Step[];
   t: Strings;
+  /**
+   * ⚠ 帯は共有ボタンと**反対側**に置く。理由は2つ:
+   *   1. 同じ側だと押すべきボタンを自分で隠す
+   *   2. 帯を置いた側の端が色づき、ブラウザのバーまで染まって同化する
+   *   Safari(共有は下) → "top" / Chrome(共有は上) → "bottom"
+   */
+  place: "top" | "bottom";
   onDismiss: () => void;
   onRestart: () => void;
 }) {
-  const originalTitle = useRef(document.title);
-
-  // 共有シートの最上部にはページタイトルが表示される。そこにも指示を出す
-  // (実機検証で確認済み。約20文字で省略されるので短文にする)。
-  useEffect(() => {
-    if (!cfg.injectedTitle) return;
-    document.title = cfg.injectedTitle;
-    return () => {
-      document.title = originalTitle.current;
-    };
-  }, [cfg.injectedTitle]);
+  useEffect(
+    () => setShareTitle(place === "bottom" ? t.shareTitleChrome : t.shareTitleSafari),
+    [place, t],
+  );
 
   return (
-    <div className="ig-band" role="region" aria-label={t.bandTitle}>
+    <div
+      className={`ig-band${place === "bottom" ? " ig-band-bottom" : ""}`}
+      role="region"
+      aria-label={t.bandTitle}
+    >
       <div className="ig-band-head">
         <span className="ig-band-title">{t.bandTitle}</span>
         <span className="ig-band-label">{t.bandLead}</span>
@@ -155,23 +208,25 @@ function GuideBand({
       </div>
 
       <ol className="ig-steps">
-        {cfg.steps.map((s, i) => (
-          <li className="ig-step-row" key={s.img}>
+        {steps.map((s, i) => (
+          <li className="ig-step-row" key={s.label}>
             <span className="ig-step-num">{i + 1}</span>
-            <img className="ig-step-img" src={s.img} alt={s.alt} />
+            {s.img && <img className="ig-step-img" src={s.img} alt={s.alt} />}
             <span className="ig-step-label">{s.label}</span>
           </li>
         ))}
       </ol>
 
-      {/* 迷ったときの退避。実際には黄色い帯のどこを押しても開いているシートは
-          閉じるが、「どこでも押せる」では伝わらないのでボタンとして見せる。 */}
+      {/* 迷ったときの退避。実際は帯のどこを押してもシートは閉じるが、
+          「どこでも押せる」では伝わらないのでボタンとして見せる。 */}
       <button className="ig-band-back" onClick={onRestart}>
         {t.restart}
       </button>
     </div>
   );
 }
+
+/* ============ 本体 ============ */
 
 export default function InstallGuide({
   config,
@@ -185,52 +240,63 @@ export default function InstallGuide({
 }) {
   const cfg = config;
   const t = STRINGS[cfg.lang ?? "ja"];
+  const base = cfg.assetBase.replace(/\/$/, "");
   const prefix = cfg.storagePrefix ?? "installGuide";
   const DISMISS_KEY = `${prefix}Closed`;
   const WELCOME_KEY = `${prefix}WelcomeDone`;
 
   const [mode, setMode] = useState<
-    "hidden" | "welcome" | "intro" | "guide" | "safari" | "reopen"
+    "hidden" | "welcome" | "notify" | "intro" | "guide" | "outside" | "reopen"
   >("hidden");
+
+  const oneTap = !!cfg.oneTapAvailable;
+  const useChrome = isIOSChrome() && canInstallOutsideSafari();
+  const steps = useChrome
+    ? (cfg.iosChromeSteps ?? defaultChromeSteps(base, t))
+    : (cfg.iosSafariSteps ?? defaultSafariSteps(base, t));
+
+  const canGuideHere = isAndroid() ? oneTap : isIOSSafari() || useChrome;
+  const entryMode = (): "intro" | "outside" => (canGuideHere ? "intro" : "outside");
+  const closedMode = (): "reopen" | "hidden" => (canGuideHere ? "reopen" : "hidden");
 
   useEffect(() => {
     if (isStandalone()) {
-      // ホーム画面のアイコンから起動できている=追加済み。
-      // サーバに記録しておき、次にブラウザで開いたときは案内を出さない。
+      // ホーム画面から起動できている＝設定済み。サーバへ記録しておく。
       cfg.onInstalled?.();
       if (!localStorage.getItem(WELCOME_KEY)) setMode("welcome");
       return;
     }
-    // Androidは Chrome の beforeinstallprompt で1タップ設置できるので、
-    // そちらの導線に任せる(このコンポーネントはiOS専用の救済)。
-    if (!isIOS()) return;
-    if (cfg.installed) return; // 追加済みと分かっている人には出さない
+    if (!isIOS() && !isAndroid()) return; // パソコンには出さない
+    if (cfg.installed) return; // 設定済みが分かっている人には出さない
     // ⚠ 一度閉じても「二度と出ない」にしない。誤って閉じた人が詰むため、
-    //   閉じたあとは小さな入口(reopen)を必ず出す。
-    if (localStorage.getItem(DISMISS_KEY)) {
-      setMode(isIOSSafari() ? "reopen" : "hidden");
-      return;
-    }
-    setMode(isIOSSafari() ? "intro" : "safari");
+    //   閉じたあとは小さな入口(reopen)を必ず残す。
+    setMode(localStorage.getItem(DISMISS_KEY) ? closedMode() : entryMode());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cfg.installed]);
+  }, [cfg.installed, oneTap]);
 
-  // メニュー等から呼ばれたら、閉じていても必ず開く
+  // ⚠ 題名の差し替えは **intro の段階から**。「はじめる」を押す前に
+  //   共有シートを開く人がいて、そのとき元の題名が出てしまうため。
+  useEffect(() => {
+    if (mode !== "intro" && mode !== "guide") return;
+    return setShareTitle(useChrome ? t.shareTitleChrome : t.shareTitleSafari);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, useChrome]);
+
   useEffect(() => {
     if (!openNow) return;
     localStorage.removeItem(DISMISS_KEY);
-    setMode(isIOSSafari() ? "intro" : "safari");
+    setMode(entryMode());
     onOpened?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openNow]);
 
   if (mode === "hidden") return null;
 
-  // 閉じたら、その場で小さな入口に切り替える。
-  // ⚠ ここで hidden にすると、リロードするまで入口が出ず詰む。
+  // 閉じたら**その場で**小さな入口へ切り替える。
+  // ⚠ ここで hidden にすると、リロードするまで入口が出ず、誤って閉じた人が詰む。
   const dismiss = () => {
     localStorage.setItem(DISMISS_KEY, new Date().toISOString());
-    setMode(isIOSSafari() ? "reopen" : "hidden");
+    setMode(closedMode());
   };
 
   if (mode === "reopen") {
@@ -248,6 +314,8 @@ export default function InstallGuide({
   }
 
   if (mode === "welcome") {
+    const granted =
+      typeof Notification !== "undefined" && Notification.permission === "granted";
     return (
       <div className="ig-welcome">
         <h2 className="ig-welcome-title">{t.doneTitle}</h2>
@@ -258,49 +326,135 @@ export default function InstallGuide({
         <button
           className="ig-intro-btn"
           onClick={() => {
-            localStorage.setItem(WELCOME_KEY, "1");
-            setMode("hidden");
+            // すでに許可済みの人に「許可を押して」と言うと混乱するので出さない。
+            if (granted) {
+              localStorage.setItem(WELCOME_KEY, "1");
+              setMode("hidden");
+            } else setMode("notify");
           }}
         >
-          {t.start}
+          {t.next}
         </button>
       </div>
     );
   }
 
-  // Safari以外(LINE内ブラウザ等)。手順は見せず、Safariへ移る案内だけ。
-  if (mode === "safari") {
+  // 通知の「許可」の案内。
+  // ⚠ この1画面を消さないこと。押し忘れると、新しいお知らせが届かない。
+  if (mode === "notify") {
+    const finish = () => {
+      localStorage.setItem(WELCOME_KEY, "1");
+      setMode("hidden");
+    };
+    return (
+      <div className="ig-welcome" style={{ textAlign: "left" }}>
+        <h2 className="ig-welcome-title">{t.notifyTitle}</h2>
+        <p className="ig-welcome-body">{t.notifyBody}</p>
+        <div className="ig-notify-mock" role="img" aria-label={t.notifyMockAlt}>
+          <p className="ig-notify-text">{t.notifyMockText}</p>
+          <div className="ig-notify-btns">
+            <span className="ig-notify-no">{t.notifyNo}</span>
+            <span className="ig-notify-yes">{t.notifyYes}</span>
+          </div>
+        </div>
+        <p className="ig-notify-why">{t.notifyWhy}</p>
+        <button className="ig-intro-btn" onClick={finish}>
+          {t.ok}
+        </button>
+      </div>
+    );
+  }
+
+  // アプリ内ブラウザ(LINEなど)。ここでは追加できない。
+  // ⚠ 「Safariで開いて」の文字だけでは通じない。**Safariのアイコン写真を必ず見せる**。
+  if (mode === "outside") {
+    const inLine = isLineBrowser();
     return (
       <div className="ig-fullscreen ig-fullscreen-center">
         <div className="ig-intro">
           <div className="ig-intro-head">
-            <h2 className="ig-intro-title">{t.safariTitle}</h2>
+            <h2 className="ig-intro-title">{t.outsideTitle}</h2>
             <button className="ig-band-close" onClick={dismiss} aria-label={t.later}>
               ×
             </button>
           </div>
-          <p className="ig-intro-body">{t.safariBody}</p>
-          <ol className="ig-safari-steps">
-            <li>
-              {t.safariStep1}
-              <div style={{ margin: "10px 0" }}>
-                <CopyUrlButton url={cfg.appUrl} t={t} />
-              </div>
-            </li>
-            <li>{t.safariStep2}</li>
-            <li>{t.safariStep3}</li>
-          </ol>
+
+          <div className="ig-safari-id">
+            <img src={`${base}/common/icon-safari.png`} alt={t.safariIconAlt} />
+            <div>
+              <div className="ig-safari-name">Safari</div>
+              <div className="ig-safari-note">{t.safariLook}</div>
+            </div>
+          </div>
+
+          <p className="ig-intro-body">{t.outsideBody}</p>
+
+          {inLine ? (
+            <>
+              {/* LINEは ?openExternalBrowser=1 を付けたアドレスを、
+                  LINEの中ではなく外のブラウザで開く。まずこれを試させる。 */}
+              <button
+                className="ig-intro-btn"
+                onClick={() => {
+                  const u = new URL(cfg.appUrl);
+                  u.searchParams.set("openExternalBrowser", "1");
+                  window.location.href = u.toString();
+                }}
+              >
+                {t.openExternal}
+              </button>
+              <p className="ig-intro-note">{t.lineFallback}</p>
+            </>
+          ) : (
+            <p className="ig-intro-note">{t.inAppFallback}</p>
+          )}
+
+          <details className="ig-details">
+            <summary>{t.sureWay}</summary>
+            <ol className="ig-safari-steps">
+              <li>
+                {t.sureStep1}
+                <div style={{ margin: "10px 0" }}>
+                  <CopyUrlButton url={cfg.appUrl} t={t} />
+                </div>
+              </li>
+              <li>{t.sureStep2}</li>
+              <li>{t.sureStep3}</li>
+            </ol>
+          </details>
         </div>
       </div>
     );
   }
 
-  // 設定中は背景(ふだんの画面)を完全に隠す。
-  // ⚠ 後ろが見えていると「どちらを操作するのか」で迷う。半透明に戻さないこと。
+  // 設定中は背景を完全に隠す。後ろが見えると「どちらを操作するのか」で迷う。
   if (mode === "guide") {
     return (
       <div className="ig-fullscreen">
-        <GuideBand cfg={cfg} t={t} onDismiss={dismiss} onRestart={() => setMode("intro")} />
+        {/* 押すものは**このページの外**(ブラウザのボタン)にある。
+            ⚠ 矢印は必ず対象の方向へ寄せる。中央だと別の場所を指してしまう。 */}
+        {useChrome ? (
+          <div className="ig-look ig-look-up">
+            <div className="ig-look-arrow" aria-hidden="true">
+              ↑
+            </div>
+            <p>{t.lookUpRight}</p>
+          </div>
+        ) : (
+          <div className="ig-look ig-look-down">
+            <p>{t.lookDownRight}</p>
+            <div className="ig-look-arrow" aria-hidden="true">
+              ↓
+            </div>
+          </div>
+        )}
+        <GuideBand
+          steps={steps}
+          t={t}
+          place={useChrome ? "bottom" : "top"}
+          onDismiss={dismiss}
+          onRestart={() => setMode("intro")}
+        />
       </div>
     );
   }
@@ -315,10 +469,19 @@ export default function InstallGuide({
             ×
           </button>
         </div>
-        <p className="ig-intro-body">{t.introBody}</p>
+        <p className="ig-intro-body">{oneTap ? t.introBodyOneTap : t.introBody}</p>
         <p className="ig-intro-note">{t.introSafety}</p>
-        <button className="ig-intro-btn" onClick={() => setMode("guide")}>
-          {t.start}
+        <button
+          className="ig-intro-btn"
+          onClick={async () => {
+            if (oneTap) {
+              await cfg.onOneTapInstall?.();
+              return;
+            }
+            setMode("guide");
+          }}
+        >
+          {oneTap ? t.addNow : t.start}
         </button>
       </div>
     </div>

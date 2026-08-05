@@ -1,19 +1,27 @@
-/* PWA「ホーム画面に追加」案内 — 汎用スタイル
+/* PWA「ホーム画面に追加」案内 — 汎用スタイル(単体で完結。他のCSSに依存しない)
  *
- * ⚠ 変えてはいけないところ(実機検証・実利用テストの結論。README.md 参照):
- *   1. 帯(.ig-band)の高さは画面の上から42%以内。iOSの共有シートの上端が
- *      42.7%(iPhone 17e / SE第3世代の実測)。これを超えると指示が隠れる。
- *   2. 配色は黄色地+黒文字。アプリ本体と同じ色にすると「指示」に見えない。
- *   3. .ig-fullscreen は不透明。半透明にすると背景の通常画面が見えて、
- *      利用者が「どちらを操作するのか」で迷う。
- *   4. 手順の写真(.ig-step-img)は伸ばさない。小さなボタンの写真が
- *      白い余白だらけになる。
+ * ⚠⚠ 変えてはいけないところ。すべて実機で確かめた結果。README.md に根拠あり。
+ *
+ *  1. `.ig-fullscreen` の背景を**白以外の1色で塗らない**
+ *     iOSのブラウザは**ページ端の色をツールバーに反映する**。全面を黄色にしたら
+ *     Safariの下バーまで黄色に染まり、押すべき「…」が同化して見えなくなった。
+ *     黄色は**帯とカードだけ**に使う。
+ *
+ *  2. 帯は共有ボタンと**反対側**に置く(`.ig-band` / `.ig-band-bottom`)
+ *     Safari(共有は画面下) → 帯は上 / Chrome(共有は画面上) → 帯は下
+ *     同じ側だと (a)ボタンを隠す (b)その側のバーが色づいて同化する
+ *
+ *  3. 帯の高さは **250pt 以内**
+ *     最小の iPhone SE(第3世代)でChromeの表示領域は約535pt。
+ *     iOSの共有シートは画面の上から42.7%に上端が来る(実測)。
+ *
+ *  4. 矢印(`.ig-look-arrow`)は `display:inline-block` のまま
+ *     div のままだと全幅になり、右寄せが効かず中央を指してしまう。
  */
 
 :root {
   --ig-bg: #ffd400; /* 指示の地色(道路標識と同じ最高コントラスト) */
-  --ig-fg: #111111; /* 文字色 */
-  --ig-muted: #5f6660;
+  --ig-fg: #111111;
 }
 
 /* ===== 設定中は背景を完全に覆う ===== */
@@ -21,9 +29,11 @@
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: var(--ig-bg);
+  /* ⚠ ここを黄色に戻さないこと(上の注意1) */
+  background: #ffffff;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
 }
 .ig-fullscreen-center {
   display: flex;
@@ -35,15 +45,12 @@
   width: 100%;
   max-width: 560px;
   margin: 0;
-  background: #fff;
-  border-color: var(--ig-fg);
 }
 .ig-fullscreen .ig-band {
   box-shadow: none;
-  border-bottom: none;
 }
 
-/* ===== 手順の帯(画面上部に固定) ===== */
+/* ===== 手順の帯 ===== */
 .ig-band {
   position: fixed;
   top: 0;
@@ -56,6 +63,17 @@
   padding: 6px 10px 10px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
   font-family: inherit;
+}
+/* Chrome用: 共有ボタンが上にあるので帯は下 */
+.ig-band-bottom {
+  top: auto;
+  bottom: 0;
+  border-bottom: none;
+  border-top: 5px solid var(--ig-fg);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.3);
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  max-height: 250px;
+  overflow-y: auto;
 }
 .ig-band-head {
   display: grid;
@@ -87,7 +105,7 @@
   padding: 8px 12px;
 }
 
-/* 手順は常時ぜんぶ出す(自動で進めない)。利用者は画面と写真を見比べて選ぶ。 */
+/* 手順は常時ぜんぶ出す(自動で送らない) */
 .ig-steps {
   list-style: none;
   margin: 6px 0 0;
@@ -143,7 +161,39 @@
   font-weight: 800;
 }
 
-/* ===== 設定の入口(開始前・Safari誘導) ===== */
+/* ===== 視線誘導(押すものはページの外にある) ===== */
+.ig-look {
+  position: absolute;
+  right: 0;
+  left: 0;
+  padding: 10px 16px;
+  pointer-events: none;
+  text-align: right;
+}
+.ig-look-up { top: 0; }
+.ig-look-down { bottom: 0; }
+.ig-look-arrow {
+  /* ⚠ inline-block を外すと全幅になり、右寄せが効かない */
+  display: inline-block;
+  font-size: 58px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ig-fg);
+  margin-right: 22px;
+}
+/* Chromeは共有ボタンが右上。矢印を時計の1時の向きに傾ける */
+.ig-look-up .ig-look-arrow {
+  transform: rotate(30deg);
+}
+.ig-look p {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 4px 0;
+  color: var(--ig-fg);
+}
+
+/* ===== 入口のカード ===== */
 .ig-intro {
   background: var(--ig-bg);
   color: var(--ig-fg);
@@ -196,9 +246,7 @@
   padding-left: 1.3em;
   margin: 10px 0 0;
 }
-.ig-safari-steps li {
-  margin-bottom: 8px;
-}
+.ig-safari-steps li { margin-bottom: 8px; }
 .ig-copy-btn {
   display: block;
   width: 100%;
@@ -209,6 +257,40 @@
   border-radius: 10px;
   font-size: 18px;
   font-weight: 800;
+}
+
+/* ===== アプリ内ブラウザからの脱出 =====
+   ⚠ 「Safariで開いて」の文字だけでは通じない。アイコン写真を必ず並べる。 */
+.ig-safari-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 10px 0 0;
+}
+.ig-safari-id img {
+  width: 66px;
+  height: 66px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+}
+.ig-safari-name { font-size: 20px; font-weight: 900; line-height: 1.2; }
+.ig-safari-note { font-size: 14px; line-height: 1.4; margin-top: 2px; }
+.ig-details {
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  font-size: 15px;
+}
+.ig-details summary {
+  font-weight: 800;
+  cursor: pointer;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
 }
 
 /* ===== 閉じたあとの小さな入口 =====
@@ -227,7 +309,7 @@
   text-align: center;
 }
 
-/* ===== 追加完了(ホーム画面から起動したとき) ===== */
+/* ===== 完了・通知の許可 ===== */
 .ig-welcome {
   background: #fff;
   border: 3px solid var(--ig-fg);
@@ -235,17 +317,10 @@
   padding: 16px;
   margin-bottom: 14px;
   text-align: center;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
 }
-.ig-welcome-title {
-  font-size: 24px;
-  font-weight: 900;
-  margin: 0 0 8px;
-}
-.ig-welcome-body {
-  font-size: 17px;
-  line-height: 1.7;
-  margin: 8px 0 0;
-}
+.ig-welcome-title { font-size: 24px; font-weight: 900; margin: 0 0 8px; }
+.ig-welcome-body { font-size: 17px; line-height: 1.7; margin: 8px 0 0; }
 .ig-done-icon {
   width: 110px;
   height: auto;
@@ -254,12 +329,33 @@
   margin: 8px auto;
   border: 1px solid #ddd;
 }
+/* 実物と同じ見た目の見本。押す場所を写真と同じ形で見せる */
+.ig-notify-mock {
+  background: #f2f2f2;
+  border-radius: 14px;
+  padding: 12px;
+  margin: 12px 0;
+  text-align: center;
+}
+.ig-notify-text { font-size: 15px; line-height: 1.5; margin: 0 0 10px; }
+.ig-notify-btns { display: flex; gap: 10px; }
+.ig-notify-no,
+.ig-notify-yes {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 16px;
+  background: #fff;
+}
+.ig-notify-no { color: #888; }
+.ig-notify-yes {
+  font-weight: 900;
+  color: #0a62d0;
+  border: 3px solid #c62828;
+}
+.ig-notify-why { font-size: 15px; line-height: 1.6; margin: 8px 0 0; }
 
-/* 動きが苦手な人への配慮 */
 @media (prefers-reduced-motion: reduce) {
   .ig-band,
-  .ig-fullscreen {
-    animation: none !important;
-    transition: none !important;
-  }
+  .ig-fullscreen { animation: none !important; transition: none !important; }
 }
