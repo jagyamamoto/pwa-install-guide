@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jagyamamoto.github.io/pwa-install-guide/sitemap.xml

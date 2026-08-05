@@ -1,0 +1,21 @@
+# pwa-install-guide
+
+> iOSでWebアプリを「ホーム画面に追加」してもらうための案内部品。実機テストと失敗の記録ごと部品化した、MITライセンスのオープンソースコンポーネント。高齢者・スマホに不慣れな人でも、説明者なしで自力でホーム画面に追加できるよう設計されている。iOSのSafari/Chrome自動判別、iOS/Android自動判別、言語自動判別、インストール後は再表示しない、の4つが主な機能。
+
+## Docs
+
+- [紹介ページ](https://jagyamamoto.github.io/pwa-install-guide/): なぜPWAか、問題設定、実機で確かめた10の事実、写真、設計原則
+- [はじめ方](https://jagyamamoto.github.io/pwa-install-guide/getting-started.html): gitもAIコーディングも初めての人向けの導入手順（AIコーディングツールへの依頼を含む）
+- [README](https://github.com/jagyamamoto/pwa-install-guide/blob/main/README.md): 実装の詳細・実測データの全文・設計原則・使い方
+- [INTEGRATION.md](https://github.com/jagyamamoto/pwa-install-guide/blob/main/INTEGRATION.md): AIコーディングツール(Claude Code / Codex等)にそのまま渡せる組み込み依頼文
+
+## Source
+
+- [src/InstallGuide.tsx](https://github.com/jagyamamoto/pwa-install-guide/blob/main/src/InstallGuide.tsx): リファレンス実装(React)。判定ロジック・文言・配色・制約はフレームワーク非依存
+- [src/strings.ts](https://github.com/jagyamamoto/pwa-install-guide/blob/main/src/strings.ts): 多言語文言(ja / ja-easy / en / zh / vi)
+- [src/install-guide.css](https://github.com/jagyamamoto/pwa-install-guide/blob/main/src/install-guide.css): スタイル(変更禁止事項がコメントにある)
+- [assets/](https://github.com/jagyamamoto/pwa-install-guide/tree/main/assets): 同梱のOSシステム画面写真(iOS Safari / iOS Chrome)。全アプリ共通で撮り直し不要
+
+## Related
+
+- [kairanban-app](https://github.com/jagyamamoto/kairanban-app): この部品を実際に組み込んで本番運用している、町内会・自治会向け無料PWAアプリ
