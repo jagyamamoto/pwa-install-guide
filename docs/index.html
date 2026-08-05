@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pwa-install-guide — 「ホーム画面に追加」を、迷わせずに終わらせる部品</title>
+<meta name="description" content="iOSのPWAインストール案内を、実機テストと失敗の記録ごと部品化。高齢者・スマホに不慣れな人でも自力でホーム画面に追加できる。MITライセンスで無料公開。">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%23ffd400%22/><text x=%2250%22 y=%2268%22 font-size=%2258%22 font-weight=%22900%22 text-anchor=%22middle%22 font-family=%22Arial%22>+</text></svg>">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">+</span>
+      pwa-install-guide
+    </a>
+    <nav class="site-nav">
+      <a href="getting-started.html">はじめ方</a>
+      <a href="https://github.com/jagyamamoto/pwa-install-guide">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap-narrow">
+      <span class="eyebrow">MIT LICENSE ・ 無料</span>
+      <h1>「ホーム画面に追加」を、<br>迷わせずに終わらせる部品。</h1>
+      <p class="hero-lead">
+        iOSでWebアプリをホーム画面に置いてもらう案内を、実機テストと失敗の記録ごと部品化しました。
+        高齢者・スマホに不慣れな人でも、説明者なしで自力でたどり着けます。
+      </p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="getting-started.html">gitもAIコーディングも初めてです →</a>
+        <a class="btn btn-ghost" href="https://github.com/jagyamamoto/pwa-install-guide">GitHubで見る</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap-narrow prose">
+
+    <hr>
+
+    <h2><span class="num">問題</span>なぜ普通のマニュアルは失敗するのか</h2>
+    <p>
+      iOSでは、Webアプリをホーム画面に置く操作をアプリ側から自動化できません。
+      利用者が自分で「共有 → ホーム画面に追加 → 追加」を辿るしかありません。ところが、
+    </p>
+    <ul>
+      <li><strong>操作を始めると、OSの共有シートがページを覆います</strong>（＝説明が見えなくなる）</li>
+      <li><strong>高齢者は「見たものを覚えて操作する」ことができません</strong>（作業記憶が1動作しか保たない）</li>
+    </ul>
+    <p>
+      この2つが重なるため、写真を並べただけの案内は<strong>紙面の出来と無関係に必ず失敗します</strong>。
+      この部品は、その失敗を実機で10回以上繰り返して見つけた解き方を、そのままコード化したものです。
+    </p>
+
+    <h2><span class="num">実測</span>実機で確かめた10の事実</h2>
+    <p>検証環境: iPhone 17e / iPhone SE 第3世代（シミュレータ）＋ iPhone 15 Pro Max（実機）</p>
+    <div class="table-wrap">
+      <table class="data">
+        <tr><th class="num">#</th><th>調べたこと</th><th>結果</th></tr>
+        <tr><td class="num">1</td><td>共有シート表示中、ページはどこまで見えるか</td><td><strong>画面の上から42.7%は覆われない</strong></td></tr>
+        <tr><td class="num">2</td><td>共有シート表示中、JSは動くか</td><td><strong>動く</strong>（開いたまま秒カウンタが進み続けた）</td></tr>
+        <tr><td class="num">3</td><td>シートの開閉をページが検知できるか</td><td><strong>できない</strong>（blur/focus/visibilitychange 等いずれも発火せず）</td></tr>
+        <tr><td class="num">4</td><td><code>&lt;title&gt;</code> は共有シートに出るか</td><td><strong>出る</strong>（ただし document.title と og:title の両方が必要）</td></tr>
+        <tr><td class="num">5</td><td><code>navigator.share()</code>でワンボタン設置できるか</td><td><strong>不可</strong>。開いたシートに「ホーム画面に追加」が無い</td></tr>
+        <tr><td class="num">6</td><td>共有シートの題名は何文字入るか</td><td><strong>約16文字</strong>。超えると末尾が「…」に切れる</td></tr>
+        <tr><td class="num">7</td><td>「追加済みか」をブラウザから判定できるか</td><td><strong>できない</strong>。Safariとホーム画面アプリは保存領域が別</td></tr>
+        <tr><td class="num">8</td><td>Safari以外から追加できるか</td><td><strong>iOS 16.4以降のみ</strong>。16.3以前はSafari限定</td></tr>
+      </table>
+    </div>
+    <p style="text-align:right; margin-top:-14px;"><a href="https://github.com/jagyamamoto/pwa-install-guide#2-%E5%AE%9F%E6%A9%9F%E3%81%A7%E7%A2%BA%E3%81%8B%E3%82%81%E3%81%9F%E4%BA%8B%E5%AE%9F">残り2件と根拠はREADMEへ →</a></p>
+
+    <h2><span class="num">実物</span>同梱している写真</h2>
+    <p>iOSのシステム画面なので、どのアプリでも同じものが出ます。赤枠は自動検出で切り出し済み。撮り直し不要です。</p>
+    <p class="eyebrow steel" style="margin-bottom:10px;">iOS Safari（帯は上）</p>
+    <div class="shot-row">
+      <div class="shot-card"><span class="shot-num">1</span><img src="assets/ios-safari/1-dots.png" alt="…マーク"><div class="shot-label">「…」を押す</div></div>
+      <div class="shot-card"><span class="shot-num">2</span><img src="assets/ios-safari/2-share.png" alt="共有"><div class="shot-label">「共有」を押す</div></div>
+      <div class="shot-card"><span class="shot-num">3</span><img src="assets/ios-safari/3-showmore.png" alt="表示を増やす"><div class="shot-label">「表示を増やす」</div></div>
+      <div class="shot-card"><span class="shot-num">4</span><img src="assets/ios-safari/4-addhome.png" alt="ホーム画面に追加"><div class="shot-label">「ホーム画面に追加」</div></div>
+      <div class="shot-card"><span class="shot-num">5</span><img src="assets/ios-safari/5-add.png" alt="追加"><div class="shot-label">「追加」を押す</div></div>
+    </div>
+    <p class="eyebrow steel" style="margin-bottom:10px;">iOS Chrome（帯は下・4手順）</p>
+    <div class="shot-row">
+      <div class="shot-card"><span class="shot-num">1</span><img src="assets/ios-chrome/1-share.jpg" alt="共有"><div class="shot-label">共有マークを押す</div></div>
+      <div class="shot-card"><span class="shot-num">2</span><img src="assets/ios-chrome/2-showmore.jpg" alt="表示を増やす"><div class="shot-label">「表示を増やす」</div></div>
+      <div class="shot-card"><span class="shot-num">3</span><img src="assets/ios-chrome/3-addhome.jpg" alt="ホーム画面に追加"><div class="shot-label">「ホーム画面に追加」</div></div>
+      <div class="shot-card"><span class="shot-num">4</span><img src="assets/ios-chrome/4-add.jpg" alt="追加"><div class="shot-label">「追加」を押す</div></div>
+    </div>
+
+    <h2><span class="num">原則</span>守らないと通じない5つ</h2>
+    <ol>
+      <li><strong>記憶ゼロ。</strong>手順を自動で送らない。全手順を常時ぜんぶ出し、利用者は自分の画面と見比べるだけ</li>
+      <li><strong>帯は共有ボタンと反対側。</strong>Safari（共有は下）→帯は上／Chrome（共有は上）→帯は下</li>
+      <li><strong>全面を1色で塗らない。</strong>iOSはページ端の色をブラウザのバーに反映するため、共有ボタンが同化して消える</li>
+      <li><strong>共有シートの題名は document.title と og:title の両方を書き換える。</strong>片方だけだと元の題名が出た事故あり</li>
+      <li><strong>その題名は15文字以内。</strong>超えると「…」で切れる（実機で2回確認）</li>
+    </ol>
+
+    <div class="alert-card">
+      <span class="tag">⚠ コードだけ写すと同じ失敗を繰り返します</span>
+      <p>ここに書いた数字と原則は、遠回りして見つけたものです。実装だけコピーして根拠を捨てると、
+      同じ場所でまた失敗します。組み込むときは <a href="https://github.com/jagyamamoto/pwa-install-guide#readme">README</a> を先に読んでください。</p>
+    </div>
+
+    <h2><span class="num">対応</span>出し分けの一覧</h2>
+    <div class="table-wrap">
+      <table class="data">
+        <tr><th>端末・環境</th><th>出るもの</th></tr>
+        <tr><td>iOS Safari</td><td>帯は上・5手順</td></tr>
+        <tr><td>iOS Chrome（16.4以降）</td><td>帯は下・4手順・上向き矢印</td></tr>
+        <tr><td>iOS Chrome（16.3以前）</td><td>Safari誘導（16.3以前はSafari限定のため）</td></tr>
+        <tr><td>LINE等のアプリ内ブラウザ</td><td>Safariアイコン＋脱出ボタン</td></tr>
+        <tr><td>ホーム画面から起動</td><td>「設定できました」→通知の許可の案内</td></tr>
+        <tr><td>Android</td><td><code>oneTapAvailable</code>のときだけ1タップ設置ボタン</td></tr>
+        <tr><td>パソコン</td><td>何も出さない</td></tr>
+      </table>
+    </div>
+
+    <div class="win-card">
+      <span class="tag">対応フレームワーク</span>
+      <p>
+        リファレンス実装はReact（<code>src/InstallGuide.tsx</code>）ですが、判定ロジック・文言・配色・制約は
+        フレームワーク非依存です。実際にAstro/vanilla構成に移植して本番投入した実績があります。
+        React以外の構成なら、同じ判定・同じ文言・同じ配色・同じ制約で作り直してください。
+      </p>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-links">
+      <a href="getting-started.html">はじめ方</a>
+      <a href="https://github.com/jagyamamoto/pwa-install-guide">GitHub</a>
+      <a href="https://github.com/jagyamamoto/pwa-install-guide/blob/main/LICENSE">MIT License</a>
+      <a href="https://www.jagproject.com/about">Jag Projectについて</a>
+    </div>
+    <p>pwa-install-guide は、個人が空いた時間で管理しているオープンソースの部品です。サポート・動作保証はありません。</p>
+  </div>
+</footer>
+
+</body>
+</html>

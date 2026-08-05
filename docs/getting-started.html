@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>はじめ方 — gitもAIコーディングも初めての方へ | pwa-install-guide</title>
+<meta name="description" content="gitもAIコーディングも触ったことがない方向けの、pwa-install-guide導入手順。アカウント準備からAIへの依頼、実機確認まで番号付きで説明します。">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%23ffd400%22/><text x=%2250%22 y=%2268%22 font-size=%2258%22 font-weight=%22900%22 text-anchor=%22middle%22 font-family=%22Arial%22>+</text></svg>">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">+</span>
+      pwa-install-guide
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">この部品について</a>
+      <a href="https://github.com/jagyamamoto/pwa-install-guide">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap-narrow">
+      <span class="eyebrow">はじめてのAIコーディング向け</span>
+      <h1>gitもAIコーディングも<br>したことがない方へ。</h1>
+      <p class="hero-lead">
+        「町内会で、少しスマホやパソコンに詳しい」くらいの前提で書いています。
+        専門用語が出てきたら、その都度かんたんに説明します。上から順に進めてください。
+      </p>
+    </div>
+  </section>
+
+  <div class="wrap-narrow prose">
+
+    <div class="win-card">
+      <span class="tag">これは何をするページですか</span>
+      <p>
+        あなたの町内会・団体のWebアプリに、「スマホのホーム画面にアイコンとして置いてもらうための案内」
+        という機能を追加する手順です。この機能自体は<a href="index.html">前のページ</a>で説明した通り、
+        実機で10回以上やり直して見つけた「迷わせない作り方」がすでに出来上がっています。
+        あなたがコードを書く必要はありません。<strong>AI（Claude Codeなど）に、この部品を渡して
+        「組み込んで」と頼むだけ</strong>です。
+      </p>
+    </div>
+
+    <div class="alert-card">
+      <span class="tag">前提条件</span>
+      <p>
+        すでに動いている自分のWebアプリ（サイト）が必要です。まだ何もない場合は、
+        まず町内会向けアプリのひな形 <a href="https://github.com/jagyamamoto/kairanban-app">kairanban-app</a>
+        を使うところから始めてください。そちらの
+        <a href="https://jagyamamoto.github.io/kairanban-app/ai-coding-beginners.html">「AIコーディング初心者向け。最初に用意するもの」</a>
+        ページに、アカウントの作り方や、AIにファイルを読ませる方法の基礎がまとまっています。
+        本ページはその続き（すでにAIコーディング環境がある前提）として読めます。
+      </p>
+    </div>
+
+    <ol class="step-list">
+      <li class="step-item">
+        <h3>この部品をダウンロードする</h3>
+        <p>
+          <a href="https://github.com/jagyamamoto/pwa-install-guide">GitHubのページ</a>を開き、
+          右上あたりにある緑色の「Code」ボタンを押して、「Download ZIP」を選んでください。
+          ダウンロードされたzipファイルを、ダブルクリックして展開（解凍）します。
+          gitというツールに慣れている方は、代わりに <code>git clone</code> でも構いません。
+        </p>
+        <div class="code-block">git clone https://github.com/jagyamamoto/pwa-install-guide.git</div>
+        <p class="copy-note">↑ ターミナルが分かる方向けの、もう一つの方法です。分からなければ上のZIP方式で大丈夫です。</p>
+      </li>
+
+      <li class="step-item">
+        <h3>展開したフォルダを、自分のプロジェクトのフォルダのそばに置く</h3>
+        <p>
+          自分のアプリのフォルダ（Claude Codeで普段開いているフォルダ）と、
+          いま展開した <code>pwa-install-guide</code> フォルダが、<strong>同じ場所からAIに見える状態</strong>
+          にしてください。分かりやすいのは、自分のプロジェクトフォルダの<strong>一つ上の階層</strong>に置く方法です。
+        </p>
+      </li>
+
+      <li class="step-item">
+        <h3>AIコーディングツールで、自分のプロジェクトを開く</h3>
+        <p>
+          Claude Codeなど、普段AIにコードを書いてもらっているツールを開き、
+          自分のアプリのプロジェクトフォルダを開いてください（いつもの手順と同じです）。
+        </p>
+      </li>
+
+      <li class="step-item">
+        <h3>依頼文をコピーして、AIに貼り付ける</h3>
+        <p>
+          <a href="https://github.com/jagyamamoto/pwa-install-guide/blob/main/INTEGRATION.md">INTEGRATION.md</a>
+          というファイルを開いてください。AIへの依頼文がそのまま書いてあります。
+          文中の【プロジェクトのパス】と【この案件のログイン基盤・DB】の部分だけ、
+          自分のアプリの内容に書き換えて、それより下の全文をAIのチャット欄に貼り付けてEnterを押します。
+        </p>
+        <p class="copy-note">
+          書き方に迷ったら、「〇〇（自分のアプリ名）に、この部品を組み込んでください」くらいの
+          一言を先頭に足すだけでも十分です。細かい判断はAIが行い、専門的な質問があれば
+          選択肢の形で聞き返してくるはずです。
+        </p>
+      </li>
+
+      <li class="step-item">
+        <h3>AIの質問には、選択肢から選ぶだけで答える</h3>
+        <p>
+          依頼文の中に「仕様に関わる判断は、Yes/Noか選択肢で聞くこと」と書いてあるので、
+          専門用語で聞かれることはないはずです。もし専門用語で聞かれたら、
+          「非開発者にも分かる言葉で、選択肢にして」とだけ返してください。
+        </p>
+      </li>
+
+      <li class="step-item">
+        <h3>できあがったら、自分のiPhoneで実際に試す</h3>
+        <p>
+          AIの作業が終わったら、「画面を見て終わり」にせず、<strong>実際に自分のiPhoneで</strong>
+          「ホーム画面に追加」を最初から最後までやってみてください。特に次の3つを確認します。
+        </p>
+        <ul>
+          <li>案内の帯が、共有ボタンを隠していないか</li>
+          <li>いちばん小さい画面（iPhone SE等）でも、手順がすべて見えるか</li>
+          <li>ホーム画面から開いたときに「設定できました」と出るか</li>
+        </ul>
+      </li>
+
+      <li class="step-item">
+        <h3>困ったとき</h3>
+        <p>
+          AIが3回試しても解決しない場合や、ここまでの手順自体が分からない場合は、
+          <a href="https://github.com/jagyamamoto/pwa-install-guide/issues">GitHubのIssue</a>
+          に、今どういう状態か（何をしたか・何が起きたか）を書き込んでください。
+          コードが分からなくても、状況を書くだけで大丈夫です。
+        </p>
+      </li>
+    </ol>
+
+    <hr>
+
+    <p style="text-align:center; color:var(--muted);">
+      このページ自体、上と同じやり方でAIに作らせています。うまくいかない箇所があれば、
+      それも含めて教えてください。
+    </p>
+    <div class="btn-row" style="justify-content:center;">
+      <a class="btn btn-primary" href="https://github.com/jagyamamoto/pwa-install-guide">GitHubへ →</a>
+      <a class="btn btn-ghost" href="index.html">この部品について、もう一度読む</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-links">
+      <a href="index.html">この部品について</a>
+      <a href="https://github.com/jagyamamoto/pwa-install-guide">GitHub</a>
+      <a href="https://github.com/jagyamamoto/pwa-install-guide/blob/main/LICENSE">MIT License</a>
+      <a href="https://www.jagproject.com/about">Jag Projectについて</a>
+    </div>
+    <p>pwa-install-guide は、個人が空いた時間で管理しているオープンソースの部品です。サポート・動作保証はありません。</p>
+  </div>
+</footer>
+
+</body>
+</html>
