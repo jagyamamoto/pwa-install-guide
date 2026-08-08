@@ -41,7 +41,18 @@ export type InstallGuideConfig = {
   /** 手順を差し替えたいとき(通常は不要。既定で同梱の写真を使う)。 */
   iosSafariSteps?: Step[];
   iosChromeSteps?: Step[];
+  /** Androidの手順。既定は写真なしの文字だけ(理由は defaultAndroidSteps)。 */
+  androidSteps?: Step[];
+  /** Androidのアプリ内ブラウザから逃がすときに見せるChromeのアイコン画像。 */
+  chromeIconImg?: string;
 };
+
+/**
+ * Androidの `beforeinstallprompt` は**ページ表示より遅れて届く**。
+ * ⚠ 届く前に判定すると「1回押すだけ」を取り逃がす。実機で 200〜800ms 程度かかった。
+ *   余裕を見て、この時間だけ待ってから最初の画面を出す。
+ */
+const ANDROID_PROMPT_GRACE_MS = 1200;
 
 /* ============ 端末とブラウザの判定 ============ */
 
@@ -76,6 +87,16 @@ export function isIOSChrome(): boolean {
 /** LINEのアプリ内ブラウザか。 */
 export function isLineBrowser(): boolean {
   return /Line\//i.test(navigator.userAgent);
+}
+
+/**
+ * Androidのアプリ内ブラウザ(LINE・Facebook・Instagram等)か。
+ * ここからはホーム画面に追加できないので、外のブラウザへ逃がすしかない。
+ * `; wv)` はAndroid標準のWebViewが名乗る印。
+ */
+export function isAndroidInApp(): boolean {
+  if (!isAndroid()) return false;
+  return /Line\/|FBAN|FBAV|Instagram|Twitter|; wv\)/i.test(navigator.userAgent);
 }
 
 /** iOSのバージョン(例: 18.4)。取れないときは null。 */
@@ -134,9 +155,28 @@ function defaultChromeSteps(base: string, t: Strings): Step[] {
   ];
 }
 
+/**
+ * Android(Chrome)の手順。**写真は付けない。**
+ * Androidはメーカーごとにメニューの見た目が違い、合わない写真は
+ * 「自分のと違う」と手を止めさせる。位置を言葉で書くほうが確実だった。
+ * 自分の端末の写真を撮ったら `androidSteps` で差し替えられる。
+ */
+function defaultAndroidSteps(t: Strings): Step[] {
+  return [{ label: t.agStep1 }, { label: t.agStep2 }, { label: t.agStep3 }];
+}
+
 /* ============ 部品 ============ */
 
-function CopyUrlButton({ url, t }: { url: string; t: Strings }) {
+function CopyUrlButton({
+  url,
+  label,
+  doneLabel,
+}: {
+  url: string;
+  label: string;
+  /** 写したあとの文字。逃がす先のブラウザ名が入るので端末で変わる。 */
+  doneLabel: string;
+}) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -160,7 +200,7 @@ function CopyUrlButton({ url, t }: { url: string; t: Strings }) {
         }
       }}
     >
-      {copied ? t.copied : t.copyUrl}
+      {copied ? doneLabel : label}
     </button>
   );
 }
@@ -188,10 +228,12 @@ function GuideBand({
   onDismiss: () => void;
   onRestart: () => void;
 }) {
-  useEffect(
-    () => setShareTitle(place === "bottom" ? t.shareTitleChrome : t.shareTitleSafari),
-    [place, t],
-  );
+  // 共有シートの題名の差し替えは iOS だけ。Androidの「ホーム画面に追加」は
+  // document.title ではなく manifest の名前を出すので、変えると混乱するだけ。
+  useEffect(() => {
+    if (!isIOS()) return;
+    return setShareTitle(place === "bottom" ? t.shareTitleChrome : t.shareTitleSafari);
+  }, [place, t]);
 
   return (
     <div
@@ -250,14 +292,49 @@ export default function InstallGuide({
   >("hidden");
 
   const oneTap = !!cfg.oneTapAvailable;
+  const android = isAndroid();
   const useChrome = isIOSChrome() && canInstallOutsideSafari();
-  const steps = useChrome
-    ? (cfg.iosChromeSteps ?? defaultChromeSteps(base, t))
-    : (cfg.iosSafariSteps ?? defaultSafariSteps(base, t));
+  const steps = android
+    ? (cfg.androidSteps ?? defaultAndroidSteps(t))
+    : useChrome
+      ? (cfg.iosChromeSteps ?? defaultChromeSteps(base, t))
+      : (cfg.iosSafariSteps ?? defaultSafariSteps(base, t));
 
-  const canGuideHere = isAndroid() ? oneTap : isIOSSafari() || useChrome;
+  /**
+   * 押すものが画面の**上**にあるか。帯はその反対側に置く(README の原則2)。
+   * Safari=下 → 帯は上 / iOS Chrome と Android Chrome=上 → 帯は下。
+   */
+  const targetIsUp = useChrome || android;
+
+  /**
+   * ここで案内を出せる環境か。
+   *
+   * ⚠ Androidを `oneTap` で判定してはいけない。ここが 2026-08-09 まで入っていた不具合。
+   *   `beforeinstallprompt` は非同期で遅れて届き、そもそも届かないブラウザもある
+   *   (Firefox・Samsung Internet・一部のメーカー製ブラウザ)。届く前に判定すると
+   *   `canGuideHere` が false になり、**AndroidなのにiOS用の「Safariで開き直して」**が出た。
+   *   Androidは「1回押すだけ」が使えなくても手動の手順を出せるので、常に案内できる。
+   *   出せないのはアプリ内ブラウザ(LINE等)のときだけ。
+   */
+  const canGuideHere = android ? !isAndroidInApp() : isIOSSafari() || useChrome;
   const entryMode = (): "intro" | "outside" => (canGuideHere ? "intro" : "outside");
   const closedMode = (): "reopen" | "hidden" => (canGuideHere ? "reopen" : "hidden");
+
+  /**
+   * Androidでは `beforeinstallprompt` を少しだけ待つ。
+   * 待たずに描くと「はじめる」(手動)を先に見せてしまい、直後に
+   * 「1回押すだけ」へ化けて利用者を驚かせる。
+   */
+  const [promptSettled, setPromptSettled] = useState(!android);
+  useEffect(() => {
+    if (promptSettled) return;
+    if (oneTap) {
+      setPromptSettled(true);
+      return;
+    }
+    const id = window.setTimeout(() => setPromptSettled(true), ANDROID_PROMPT_GRACE_MS);
+    return () => window.clearTimeout(id);
+  }, [promptSettled, oneTap]);
 
   useEffect(() => {
     if (isStandalone()) {
@@ -266,17 +343,22 @@ export default function InstallGuide({
       if (!localStorage.getItem(WELCOME_KEY)) setMode("welcome");
       return;
     }
-    if (!isIOS() && !isAndroid()) return; // パソコンには出さない
+    if (!isIOS() && !android) return; // パソコンには出さない
     if (cfg.installed) return; // 設定済みが分かっている人には出さない
+    if (!promptSettled) return; // Androidは beforeinstallprompt を待ってから出す
     // ⚠ 一度閉じても「二度と出ない」にしない。誤って閉じた人が詰むため、
     //   閉じたあとは小さな入口(reopen)を必ず残す。
+    // ⚠ ここの依存に oneTap を入れないこと。あとから届いたときに mode が
+    //   intro へ巻き戻り、手順の途中の人が最初の画面に戻される。
+    //   「1回押すだけ」への切り替えは intro の描画側が oneTap を見て行う。
     setMode(localStorage.getItem(DISMISS_KEY) ? closedMode() : entryMode());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cfg.installed, oneTap]);
+  }, [cfg.installed, promptSettled]);
 
   // ⚠ 題名の差し替えは **intro の段階から**。「はじめる」を押す前に
   //   共有シートを開く人がいて、そのとき元の題名が出てしまうため。
   useEffect(() => {
+    if (!isIOS()) return; // Androidは共有シートを使わない
     if (mode !== "intro" && mode !== "guide") return;
     return setShareTitle(useChrome ? t.shareTitleChrome : t.shareTitleSafari);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -369,6 +451,11 @@ export default function InstallGuide({
   // ⚠ 「Safariで開いて」の文字だけでは通じない。**Safariのアイコン写真を必ず見せる**。
   if (mode === "outside") {
     const inLine = isLineBrowser();
+    // ⚠ 逃がす先は端末で違う。AndroidにSafariの絵を出すと、存在しないアプリを
+    //   探させることになる(2026-08-09の実機報告はこれが起きていた)。
+    const iconImg = android ? cfg.chromeIconImg : `${base}/common/icon-safari.png`;
+    const browserName = android ? t.chromeName : "Safari";
+    const browserLook = android ? t.chromeLook : t.safariLook;
     return (
       <div className="ig-fullscreen ig-fullscreen-center">
         <div className="ig-intro">
@@ -380,10 +467,12 @@ export default function InstallGuide({
           </div>
 
           <div className="ig-safari-id">
-            <img src={`${base}/common/icon-safari.png`} alt={t.safariIconAlt} />
+            {/* Androidは絵を同梱していない(Googleのロゴを再配布しないため)。
+                cfg.chromeIconImg を渡せば同じ形で出る。 */}
+            {iconImg && <img src={iconImg} alt={android ? browserName : t.safariIconAlt} />}
             <div>
-              <div className="ig-safari-name">Safari</div>
-              <div className="ig-safari-note">{t.safariLook}</div>
+              <div className="ig-safari-name">{browserName}</div>
+              <div className="ig-safari-note">{browserLook}</div>
             </div>
           </div>
 
@@ -403,10 +492,14 @@ export default function InstallGuide({
               >
                 {t.openExternal}
               </button>
-              <p className="ig-intro-note">{t.lineFallback}</p>
+              <p className="ig-intro-note">
+                {android ? t.lineFallbackAndroid : t.lineFallback}
+              </p>
             </>
           ) : (
-            <p className="ig-intro-note">{t.inAppFallback}</p>
+            <p className="ig-intro-note">
+              {android ? t.inAppFallbackAndroid : t.inAppFallback}
+            </p>
           )}
 
           <details className="ig-details">
@@ -415,11 +508,15 @@ export default function InstallGuide({
               <li>
                 {t.sureStep1}
                 <div style={{ margin: "10px 0" }}>
-                  <CopyUrlButton url={cfg.appUrl} t={t} />
+                  <CopyUrlButton
+                    url={cfg.appUrl}
+                    label={t.copyUrl}
+                    doneLabel={android ? t.copiedAndroid : t.copied}
+                  />
                 </div>
               </li>
-              <li>{t.sureStep2}</li>
-              <li>{t.sureStep3}</li>
+              <li>{android ? t.sureStep2Android : t.sureStep2}</li>
+              <li>{android ? t.sureStep3Android : t.sureStep3}</li>
             </ol>
           </details>
         </div>
@@ -433,7 +530,7 @@ export default function InstallGuide({
       <div className="ig-fullscreen">
         {/* 押すものは**このページの外**(ブラウザのボタン)にある。
             ⚠ 矢印は必ず対象の方向へ寄せる。中央だと別の場所を指してしまう。 */}
-        {useChrome ? (
+        {targetIsUp ? (
           <div className="ig-look ig-look-up">
             <div className="ig-look-arrow" aria-hidden="true">
               ↑
@@ -451,7 +548,7 @@ export default function InstallGuide({
         <GuideBand
           steps={steps}
           t={t}
-          place={useChrome ? "bottom" : "top"}
+          place={targetIsUp ? "bottom" : "top"}
           onDismiss={dismiss}
           onRestart={() => setMode("intro")}
         />
@@ -469,7 +566,11 @@ export default function InstallGuide({
             ×
           </button>
         </div>
-        <p className="ig-intro-body">{oneTap ? t.introBodyOneTap : t.introBody}</p>
+        {/* ⚠ oneTap は遅れて true になることがある。ここは毎回の描画で読み直すので、
+            届いた瞬間に「1回押すだけ」へ切り替わる(mode は動かさない)。 */}
+        <p className="ig-intro-body">
+          {oneTap ? t.introBodyOneTap : android ? t.introBodyAndroid : t.introBody}
+        </p>
         <p className="ig-intro-note">{t.introSafety}</p>
         <button
           className="ig-intro-btn"

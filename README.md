@@ -130,10 +130,34 @@ assets/common/      icon-safari.png
 | iOS Safari | 帯は**上**・5手順 |
 | iOS Chrome（16.4以降） | 帯は**下**・4手順・上向き矢印 |
 | iOS Chrome（16.3以前） | Safari誘導（16.3以前はSafari限定のため） |
-| LINE等のアプリ内ブラウザ | Safariアイコン＋脱出ボタン（手順は出さない） |
+| Android Chrome（`beforeinstallprompt` あり） | 1タップ設置ボタン |
+| Android Chrome（`beforeinstallprompt` なし） | 帯は**下**・3手順（文字のみ）・上向き矢印 |
+| iOSのアプリ内ブラウザ（LINE等） | Safariアイコン＋脱出ボタン（手順は出さない） |
+| Androidのアプリ内ブラウザ（LINE等） | **Chrome**への脱出ボタン（Safariの絵は出さない） |
 | ホーム画面から起動 | 「設定できました」→通知の許可の案内 |
-| Android | `oneTapAvailable` のときだけ1タップ設置ボタン |
 | パソコン | 何も出さない |
+
+#### ⚠ Androidを `oneTapAvailable` で判定しないこと（2026-08-09の実機不具合）
+
+`beforeinstallprompt` は**ページ表示より遅れて届く**（実機で200〜800ms）。
+さらに Firefox・Samsung Internet・メーカー製ブラウザでは**そもそも届かない**。
+
+初版はこれを「Androidで案内を出せるか」の判定に使っていたため、届く前の一瞬、
+あるいは永久に `canGuideHere` が false になり、**AndroidなのにiOS用の
+「Safariで開き直してください」が出た**。Androidに存在しないアプリを探させる画面である。
+
+対策は2つ。
+
+1. `canGuideHere` は `oneTapAvailable` を見ない。Androidはアプリ内ブラウザでなければ、
+   1タップが使えなくても**文字の手順**を出せる。出せないのはアプリ内ブラウザだけ。
+2. それでも「はじめる」(手動)を見せた直後に「1回押すだけ」へ化けると驚かせるので、
+   Androidに限り `beforeinstallprompt` を **最大1.2秒** 待ってから最初の画面を出す。
+   遅れて届いた場合は intro の描画側だけを差し替える（`mode` は動かさない。
+   手順の途中の人が最初の画面へ戻されるため）。
+
+Androidの手順に**写真は付けていない**。メーカーごとにメニューの見た目が違い、
+合わない写真は「自分のと違う」と手を止めさせるため。位置を言葉で書くほうが確実だった。
+自分の端末で撮ったら `androidSteps` で差し替えられる。
 
 ### 「追加済みか」の判定（重要）
 
