@@ -29,6 +29,8 @@ export type Strings = {
   /* 視線誘導 */
   lookUpRight: string;
   lookDownRight: string;
+  /** Edge(Android)だけメニューが画面の下の**まん中**にある。右下と書くと外れる。 */
+  lookDownCenter: string;
   /* 開始前 */
   introTitle: string;
   introBody: string;
@@ -88,15 +90,37 @@ export type Strings = {
   crStep3: string;
   crStep4: string;
   /**
-   * Android(Chrome)の手順。
-   * ⚠ 写真は同梱していない。Chromeのメニューの見た目は端末メーカーの改変で差が大きく、
+   * Androidの手順。
+   *
+   * ⚠ 写真は同梱していない。Androidはメーカーの改変でメニューの見た目の差が大きく、
    *   合わない写真は「自分のと違う」と手を止めさせるため、位置を言葉で書いている。
-   * ⚠ Chromeは同じ操作を「アプリをインストール」とも「ホーム画面に追加」とも表示する。
-   *   版とサイトの状態で変わるので、両方を1行に書いておくこと。
+   *
+   * ⚠⚠ **押すものの文言をブラウザの「版」から割り出すことはできない。**（2026-08-09 調査）
+   *   Chrome 110以降、UAのマイナー版は 0.0.0 に丸められ、取れるのはメジャー番号だけ。
+   *   しかもその番号と文言が対応しない（Finch＝サーバ側の実験配信で段階的に変わるため、
+   *   同じ Chrome 140 でも「アプリをインストール」と
+   *   「インストールしてショートカットを作成」に分かれる）。
+   *   さらに文言は端末のUI言語で出るので、日本語ページでも別の言語で表示されうる。
+   *   → 1つに断定せず、`agPick*` に**候補を並べて**見比べてもらう。
+   *
+   * ⚠ agPick* の中身は画面に出ている文字そのものなので、「インストール」を含む。
+   *   このファイル冒頭の「使ってはいけない語」は**こちらの地の文**についての規則で、
+   *   画面の文字の引用には当てはまらない（規則1「一字一句そのまま鍵括弧つき」が優先）。
    */
-  agStep1: string;
-  agStep2: string;
-  agStep3: string;
+  agMenuChrome: string;
+  agMenuSamsung: string;
+  agMenuFirefox: string;
+  agMenuEdge: string;
+  agMenuOpera: string;
+  agMenuOther: string;
+  agPickLead: string;
+  agPickChrome: string[];
+  agPickSamsung: string[];
+  agPickFirefox: string[];
+  agPickEdge: string[];
+  agPickOpera: string[];
+  agPickOther: string[];
+  agConfirm: string;
   /* 読み上げ用 */
   altDots: string;
   altShare: string;
@@ -116,6 +140,7 @@ const ja: Strings = {
 
   lookUpRight: "押すものは、この画面の右上にあります",
   lookDownRight: "押すものは、この画面の右下にあります",
+  lookDownCenter: "押すものは、この画面のいちばん下、まん中にあります",
 
   introTitle: "アプリを使う準備をします",
   introBody: "押すものの写真を画面の上に出しておきます。何も覚えなくて大丈夫です。",
@@ -179,9 +204,25 @@ const ja: Strings = {
   crStep3: "「ホーム画面に追加」を押す",
   crStep4: "右上の青い「追加」を押す",
 
-  agStep1: "画面の右上の、たて に3つ ならんだ点を押す",
-  agStep2: "「アプリをインストール」を押す。無いときは「ホーム画面に追加」を押す",
-  agStep3: "出てきた画面の「インストール」を押す。「追加」と出ることもある",
+  agMenuChrome: "画面の右上の、たて に3つ ならんだ点を押す",
+  agMenuSamsung: "画面の右下の、よこ線が3本ならんだ印を押す",
+  agMenuFirefox: "画面の右上の、たて に3つ ならんだ点を押す",
+  agMenuEdge: "画面のいちばん下の、まん中の「…」を押す",
+  agMenuOpera: "画面の右下の、赤い丸の印を押す",
+  agMenuOther: "この画面のメニュー（よこ線3本、または点3つ）を押す",
+
+  agPickLead: "次のどれかが出るので、出ているものを押す",
+  agPickChrome: [
+    "アプリをインストール",
+    "インストールしてショートカットを作成",
+    "ホーム画面に追加",
+  ],
+  agPickSamsung: ["現在のページを追加 → ホーム画面", "ページを追加 → ホーム画面"],
+  agPickFirefox: ["ホーム画面に追加", "アプリをインストール"],
+  agPickEdge: ["アプリ → このサイトをインストール", "ホーム画面に追加"],
+  agPickOpera: ["ホーム画面に追加", "アプリをインストール"],
+  agPickOther: ["アプリをインストール", "ホーム画面に追加"],
+  agConfirm: "出てきた画面の「インストール」を押す。「追加」と出ることもある",
 
   altDots: "画面の右下にある点3つのボタン",
   altShare: "共有と書かれた行",
@@ -201,6 +242,7 @@ const jaEasy: Strings = {
   restart: "みつからない → さいしょに もどる",
   lookUpRight: "おすものは、この がめんの みぎうえ です",
   lookDownRight: "おすものは、この がめんの みぎした です",
+  lookDownCenter: "おすものは、この がめんの いちばん した、まんなか です",
   introTitle: "アプリを つかう じゅんびを します",
   introBody: "おすものの しゃしんを がめんの うえに 出します。おぼえなくて だいじょうぶです。",
   introBodyAndroid: "おすものの ばしょを がめんの したに 出します。おぼえなくて だいじょうぶです。",
@@ -210,9 +252,14 @@ const jaEasy: Strings = {
   doneTitle: "できました",
   doneBody: "つぎからは、この アイコンを おしてください。",
   chromeLook: "あか・きいろ・みどりの わの まんなかに あおい まる",
-  agStep1: "がめんの みぎうえの、たてに 3つ ならんだ 点を おす",
-  agStep2: "「アプリをインストール」を おす。ないときは「ホーム画面に追加」を おす",
-  agStep3: "出てきた がめんの「インストール」を おす。「追加」と 出ることも あります",
+  agMenuChrome: "がめんの みぎうえの、たてに 3つ ならんだ 点を おす",
+  agMenuFirefox: "がめんの みぎうえの、たてに 3つ ならんだ 点を おす",
+  agMenuSamsung: "がめんの みぎしたの、よこ線が 3本 ならんだ しるしを おす",
+  agMenuEdge: "がめんの いちばん したの、まんなかの「…」を おす",
+  agMenuOpera: "がめんの みぎしたの、あかい まるの しるしを おす",
+  agMenuOther: "この がめんの メニュー（よこ線3本、または 点3つ）を おす",
+  agPickLead: "つぎの どれかが 出ます。出ているものを おす",
+  agConfirm: "出てきた がめんの「インストール」を おす。「追加」と 出ることも あります",
 };
 
 const en: Strings = {
@@ -224,6 +271,7 @@ const en: Strings = {
   restart: "Can't find it → Back to the first screen",
   lookUpRight: "What you tap is at the TOP RIGHT of this screen",
   lookDownRight: "What you tap is at the BOTTOM RIGHT of this screen",
+  lookDownCenter: "What you tap is at the BOTTOM CENTER of this screen",
   introTitle: "Let's get the app ready",
   introBody: "We'll keep photos of what to tap on screen. Nothing to memorize.",
   introBodyOneTap: "Just one tap on the button below.",
@@ -270,9 +318,20 @@ const en: Strings = {
   crStep2: 'Tap "Show More"',
   crStep3: 'Tap "Add to Home Screen"',
   crStep4: 'Tap the blue "Add" at the top right',
-  agStep1: "Tap the three dots stacked vertically at the top right",
-  agStep2: 'Tap "Install app". If it is not there, tap "Add to Home screen"',
-  agStep3: 'Tap "Install" on the box that appears. It may say "Add" instead',
+  agMenuChrome: "Tap the three dots stacked vertically at the top right",
+  agMenuFirefox: "Tap the three dots stacked vertically at the top right",
+  agMenuSamsung: "Tap the three stacked lines at the bottom right",
+  agMenuEdge: 'Tap the "…" in the middle of the very bottom of the screen',
+  agMenuOpera: "Tap the red circle mark at the bottom right",
+  agMenuOther: "Tap this browser's menu (three lines, or three dots)",
+  agPickLead: "One of these will appear. Tap whichever you see",
+  agPickChrome: ["Install app", "Install and create shortcut", "Add to Home screen"],
+  agPickSamsung: ["Add page to → Home screen", "Add current page to → Home screen"],
+  agPickFirefox: ["Add to Home screen", "Install app"],
+  agPickEdge: ["Apps → Install this site", "Add to Home screen"],
+  agPickOpera: ["Add to Home screen", "Install app"],
+  agPickOther: ["Install app", "Add to Home screen"],
+  agConfirm: 'Tap "Install" on the box that appears. It may say "Add" instead',
 };
 
 const zh: Strings = {
@@ -284,6 +343,7 @@ const zh: Strings = {
   restart: "找不到 → 回到第一个画面",
   lookUpRight: "要点按的位置在本画面的右上角",
   lookDownRight: "要点按的位置在本画面的右下角",
+  lookDownCenter: "要点按的位置在本画面最下方的中间",
   introTitle: "准备开始使用本应用",
   introBody: "我们会把要点按的位置照片显示在画面上。您不需要记住任何内容。",
   introBodyAndroid: "我们会把操作步骤显示在画面下方。您不需要记住任何内容。",
@@ -296,9 +356,20 @@ const zh: Strings = {
   sureStep2Android: "回到主屏幕，点按上图的「Chrome」",
   sureStep3Android: "长按画面上方的网址栏，点按「粘贴并搜索」",
   copiedAndroid: "已复制。接下来请打开 Chrome",
-  agStep1: "点按画面右上角竖排的三个点",
-  agStep2: "点按「安装应用」。如果没有，请点按「添加到主屏幕」",
-  agStep3: "点按出现的画面中的「安装」。也可能显示为「添加」",
+  agMenuChrome: "点按画面右上角竖排的三个点",
+  agMenuFirefox: "点按画面右上角竖排的三个点",
+  agMenuSamsung: "点按画面右下角的三条横线",
+  agMenuEdge: "点按画面最下方中间的「…」",
+  agMenuOpera: "点按画面右下角的红色圆形标志",
+  agMenuOther: "点按本浏览器的菜单（三条横线或三个点）",
+  agPickLead: "会出现以下其中一项，请点按您看到的那一项",
+  agPickChrome: ["安装应用", "安装并创建快捷方式", "添加到主屏幕"],
+  agPickSamsung: ["添加当前页面 → 主屏幕", "添加页面 → 主屏幕"],
+  agPickFirefox: ["添加到主屏幕", "安装应用"],
+  agPickEdge: ["应用 → 安装此网站", "添加到主屏幕"],
+  agPickOpera: ["添加到主屏幕", "安装应用"],
+  agPickOther: ["安装应用", "添加到主屏幕"],
+  agConfirm: "点按出现的画面中的「安装」。也可能显示为「添加」",
 };
 
 const vi: Strings = {
@@ -310,6 +381,7 @@ const vi: Strings = {
   restart: "Không tìm thấy → Về màn hình đầu tiên",
   lookUpRight: "Thứ cần nhấn nằm ở góc trên bên phải màn hình",
   lookDownRight: "Thứ cần nhấn nằm ở góc dưới bên phải màn hình",
+  lookDownCenter: "Thứ cần nhấn nằm ở chính giữa dưới cùng màn hình",
   introTitle: "Chuẩn bị để dùng ứng dụng",
   introBody: "Ảnh của những chỗ cần nhấn sẽ luôn hiện trên màn hình. Bạn không cần ghi nhớ gì.",
   introBodyAndroid: "Các bước sẽ luôn hiện ở phía dưới màn hình. Bạn không cần ghi nhớ gì.",
@@ -322,9 +394,20 @@ const vi: Strings = {
   sureStep2Android: 'Quay lại màn hình chính và nhấn "Chrome" như hình trên',
   sureStep3Android: 'Nhấn giữ thanh địa chỉ ở phía trên, rồi nhấn "Dán và tìm kiếm"',
   copiedAndroid: "Đã sao chép. Bây giờ hãy mở Chrome",
-  agStep1: "Nhấn ba chấm dọc ở góc trên bên phải màn hình",
-  agStep2: 'Nhấn "Cài đặt ứng dụng". Nếu không có, hãy nhấn "Thêm vào Màn hình chính"',
-  agStep3: 'Nhấn "Cài đặt" trên hộp thoại hiện ra. Cũng có thể hiển thị là "Thêm"',
+  agMenuChrome: "Nhấn ba chấm dọc ở góc trên bên phải màn hình",
+  agMenuFirefox: "Nhấn ba chấm dọc ở góc trên bên phải màn hình",
+  agMenuSamsung: "Nhấn ba vạch ngang ở góc dưới bên phải màn hình",
+  agMenuEdge: 'Nhấn dấu "…" ở chính giữa dưới cùng màn hình',
+  agMenuOpera: "Nhấn biểu tượng hình tròn màu đỏ ở góc dưới bên phải",
+  agMenuOther: "Nhấn menu của trình duyệt (ba vạch hoặc ba chấm)",
+  agPickLead: "Một trong những mục sau sẽ hiện ra. Hãy nhấn mục bạn nhìn thấy",
+  agPickChrome: ["Cài đặt ứng dụng", "Cài đặt và tạo lối tắt", "Thêm vào Màn hình chính"],
+  agPickSamsung: ["Thêm trang hiện tại → Màn hình chính", "Thêm trang → Màn hình chính"],
+  agPickFirefox: ["Thêm vào Màn hình chính", "Cài đặt ứng dụng"],
+  agPickEdge: ["Ứng dụng → Cài đặt trang này", "Thêm vào Màn hình chính"],
+  agPickOpera: ["Thêm vào Màn hình chính", "Cài đặt ứng dụng"],
+  agPickOther: ["Cài đặt ứng dụng", "Thêm vào Màn hình chính"],
+  agConfirm: 'Nhấn "Cài đặt" trên hộp thoại hiện ra. Cũng có thể hiển thị là "Thêm"',
 };
 
 export const STRINGS: Record<Lang, Strings> = { ja, "ja-easy": jaEasy, en, zh, vi };

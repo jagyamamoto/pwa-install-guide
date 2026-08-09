@@ -13,7 +13,21 @@
 import { useEffect, useState } from "react";
 import { type Lang, type Strings, STRINGS } from "./strings";
 
-export type Step = { img?: string; alt?: string; label: string };
+export type Step = {
+  img?: string;
+  alt?: string;
+  label: string;
+  /**
+   * 押すものの**候補**。機種やブラウザの版で文字が違うときに並べて見せる。
+   * ⚠ 1つに絞らないこと。Androidのメニューの文言は端末ごとに違い、
+   *   外した1つを断定で書くと「そんなものは無い」で手が止まる。
+   *   並べておけば、利用者は自分の画面と見比べて選ぶだけで済む（再認のみ）。
+   */
+  options?: string[];
+};
+
+/** Androidのブラウザの系統。メニューの位置と文言がここで決まる。 */
+export type AndroidBrowser = "chrome" | "samsung" | "firefox" | "edge" | "opera" | "other";
 
 export type InstallGuideConfig = {
   /** 本番URL。アプリ内ブラウザから抜けるときのコピー用。 */
@@ -99,6 +113,37 @@ export function isAndroidInApp(): boolean {
   return /Line\/|FBAN|FBAV|Instagram|Twitter|; wv\)/i.test(navigator.userAgent);
 }
 
+/**
+ * Androidのブラウザの系統を見る。
+ *
+ * ⚠ **文言をブラウザの「版」から割り出すことはできない。**（2026-08-09 調査）
+ *   1. Chrome 110以降、UAのマイナー版は `0.0.0` に丸められる。取れるのはメジャー番号だけ
+ *   2. そのメジャー番号と文言が対応しない。文言の変更は Finch（サーバ側の実験配信）で
+ *      段階的に配られるため、**同じ Chrome 140 でも端末により
+ *      「アプリをインストール」と「インストールしてショートカットを作成」が分かれる**
+ *   3. 文言はサイトの言語ではなく**端末のUI言語**で出る
+ *   → だから1つに断定せず、系統だけ見て**候補を並べる**（Step.options）。
+ *
+ * ⚠ 判定の順番を変えないこと。Samsung・Edge・Opera のUAには Chrome/ が入っている。
+ */
+export function androidBrowser(): AndroidBrowser {
+  const ua = navigator.userAgent;
+  if (/SamsungBrowser/i.test(ua)) return "samsung";
+  if (/EdgA\//i.test(ua)) return "edge";
+  if (/OPR\//i.test(ua)) return "opera";
+  if (/Firefox\//i.test(ua)) return "firefox";
+  if (/Chrome\//i.test(ua)) return "chrome";
+  return "other";
+}
+
+/**
+ * そのブラウザのメニューが画面の**上**にあるか。帯はこの反対側に置く。
+ * Chrome・Firefox は右上の ⋮ / Samsung・Edge・Opera は画面の下。
+ */
+export function androidMenuIsUp(b: AndroidBrowser): boolean {
+  return b === "chrome" || b === "firefox" || b === "other";
+}
+
 /** iOSのバージョン(例: 18.4)。取れないときは null。 */
 export function iosVersion(): number | null {
   const m = navigator.userAgent.match(/OS (\d+)[_.](\d+)/);
@@ -156,13 +201,44 @@ function defaultChromeSteps(base: string, t: Strings): Step[] {
 }
 
 /**
- * Android(Chrome)の手順。**写真は付けない。**
+ * Androidの手順。**写真は付けない。**
  * Androidはメーカーごとにメニューの見た目が違い、合わない写真は
  * 「自分のと違う」と手を止めさせる。位置を言葉で書くほうが確実だった。
  * 自分の端末の写真を撮ったら `androidSteps` で差し替えられる。
+ *
+ * 2段目は**候補を並べる**。理由は androidBrowser() の注記のとおり、
+ * 文言をブラウザの版から割り出すことができないため。
  */
-function defaultAndroidSteps(t: Strings): Step[] {
-  return [{ label: t.agStep1 }, { label: t.agStep2 }, { label: t.agStep3 }];
+function defaultAndroidSteps(t: Strings, b: AndroidBrowser): Step[] {
+  const menu =
+    b === "samsung"
+      ? t.agMenuSamsung
+      : b === "edge"
+        ? t.agMenuEdge
+        : b === "opera"
+          ? t.agMenuOpera
+          : b === "firefox"
+            ? t.agMenuFirefox
+            : b === "chrome"
+              ? t.agMenuChrome
+              : t.agMenuOther;
+  const options =
+    b === "samsung"
+      ? t.agPickSamsung
+      : b === "edge"
+        ? t.agPickEdge
+        : b === "opera"
+          ? t.agPickOpera
+          : b === "firefox"
+            ? t.agPickFirefox
+            : b === "chrome"
+              ? t.agPickChrome
+              : t.agPickOther;
+  return [
+    { label: menu },
+    { label: t.agPickLead, options },
+    { label: t.agConfirm },
+  ];
 }
 
 /* ============ 部品 ============ */
@@ -254,7 +330,20 @@ function GuideBand({
           <li className="ig-step-row" key={s.label}>
             <span className="ig-step-num">{i + 1}</span>
             {s.img && <img className="ig-step-img" src={s.img} alt={s.alt} />}
-            <span className="ig-step-label">{s.label}</span>
+            <span className="ig-step-label">
+              {s.label}
+              {/* 候補は縦に並べる。横に「／」でつなぐと1つの長い文に見えて、
+                  選ぶものだと分からない(見比べて選ばせるのが目的)。 */}
+              {s.options && (
+                <span className="ig-step-options">
+                  {s.options.map((o) => (
+                    <span className="ig-step-option" key={o}>
+                      {o}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </span>
           </li>
         ))}
       </ol>
@@ -293,18 +382,21 @@ export default function InstallGuide({
 
   const oneTap = !!cfg.oneTapAvailable;
   const android = isAndroid();
+  const andBrowser = android ? androidBrowser() : "other";
   const useChrome = isIOSChrome() && canInstallOutsideSafari();
   const steps = android
-    ? (cfg.androidSteps ?? defaultAndroidSteps(t))
+    ? (cfg.androidSteps ?? defaultAndroidSteps(t, andBrowser))
     : useChrome
       ? (cfg.iosChromeSteps ?? defaultChromeSteps(base, t))
       : (cfg.iosSafariSteps ?? defaultSafariSteps(base, t));
 
   /**
    * 押すものが画面の**上**にあるか。帯はその反対側に置く(README の原則2)。
-   * Safari=下 → 帯は上 / iOS Chrome と Android Chrome=上 → 帯は下。
+   * Safari=下 → 帯は上 / iOS Chrome=上 → 帯は下。
+   * ⚠ Androidは一律ではない。Chrome・Firefoxは右上の ⋮ だが、
+   *   Samsung Internet・Edge・Opera はメニューが**画面の下**にある。
    */
-  const targetIsUp = useChrome || android;
+  const targetIsUp = android ? androidMenuIsUp(andBrowser) : useChrome;
 
   /**
    * ここで案内を出せる環境か。
@@ -539,7 +631,8 @@ export default function InstallGuide({
           </div>
         ) : (
           <div className="ig-look ig-look-down">
-            <p>{t.lookDownRight}</p>
+            {/* ⚠ Edge(Android)だけメニューが下の**まん中**。右下と書くと外れる。 */}
+            <p>{andBrowser === "edge" ? t.lookDownCenter : t.lookDownRight}</p>
             <div className="ig-look-arrow" aria-hidden="true">
               ↓
             </div>
