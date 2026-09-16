@@ -1,4 +1,4 @@
-# shared-pwa-install-guide
+# Jag's PWA installer
 
 **Webアプリを「ホーム画面のアイコン」にしてもらうための案内部品**（高齢者・スマホに不慣れな人向け）。
 
