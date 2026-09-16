@@ -94,46 +94,116 @@
 
     <ol class="step-list">
       <li class="step-item">
-        <h3>この部品をダウンロードする</h3>
-        <p>
-          <a href="https://github.com/jagyamamoto/pwa-install-guide">GitHubのページ</a>を開き、
-          右上あたりにある緑色の「Code」ボタンを押して、「Download ZIP」を選んでください。
-          ダウンロードされたzipファイルを、ダブルクリックして展開（解凍）します。
-          gitというツールに慣れている方は、代わりに <code>git clone</code> でも構いません。
-        </p>
-        <div class="code-block">git clone https://github.com/jagyamamoto/pwa-install-guide.git</div>
-        <p class="copy-note">↑ ターミナルが分かる方向けの、もう一つの方法です。分からなければ上のZIP方式で大丈夫です。</p>
-      </li>
-
-      <li class="step-item">
-        <h3>展開したフォルダを、自分のプロジェクトのフォルダのそばに置く</h3>
-        <p>
-          自分のアプリのフォルダ（Claude Codeで普段開いているフォルダ）と、
-          いま展開した <code>pwa-install-guide</code> フォルダが、<strong>同じ場所からAIに見える状態</strong>
-          にしてください。分かりやすいのは、自分のプロジェクトフォルダの<strong>一つ上の階層</strong>に置く方法です。
-        </p>
-      </li>
-
-      <li class="step-item">
         <h3>AIコーディングツールで、自分のプロジェクトを開く</h3>
         <p>
-          Claude Codeなど、普段AIにコードを書いてもらっているツールを開き、
-          自分のアプリのプロジェクトフォルダを開いてください（いつもの手順と同じです）。
+          Claude Code や Codex など、普段AIにコードを書いてもらっているツールを開き、
+          自分のアプリのフォルダを開いてください（いつもの手順と同じです）。
+        </p>
+        <p class="copy-note">
+          <strong>この部品を先にダウンロードする必要はありません。</strong>
+          下の依頼文の中に取りに行く指示が入っているので、AIが自分で持ってきます。
         </p>
       </li>
 
       <li class="step-item">
-        <h3>依頼文をコピーして、AIに貼り付ける</h3>
+        <h3>下の依頼文をコピーして、AIに貼り付ける</h3>
         <p>
-          <a href="https://github.com/jagyamamoto/pwa-install-guide/blob/main/INTEGRATION.md">INTEGRATION.md</a>
-          というファイルを開いてください。AIへの依頼文がそのまま書いてあります。
-          文中の【プロジェクトのパス】と【この案件のログイン基盤・DB】の部分だけ、
-          自分のアプリの内容に書き換えて、それより下の全文をAIのチャット欄に貼り付けてEnterを押します。
+          <strong>書き換えるところはありません。</strong>まるごとコピーして、
+          AIのチャット欄に貼り付けてEnterを押してください。
         </p>
+        <div class="prompt-wrap">
+          <button type="button" class="copy-btn" data-copy="#ig-prompt">依頼文をコピー</button>
+          <pre class="prompt-box" id="ig-prompt"><!-- PROMPT:BEGIN -->私のWebアプリに、**スマホのホーム画面にアイコンとして置いてもらうための案内**を
+組み込んでください。お年寄りやスマホに不慣れな人が、説明する人なしで自力で設置できることが目的です。
+
+私はプログラミングが分かりません。**専門用語を使わず、質問は必ず Yes/No か A/B/C の選択肢**に
+してください。私に何かさせるときは、1回に1つの動作だけ、押す場所まで書いてください。
+
+## 使う部品
+
+Jag's PWA installer — https://github.com/jagyamamoto/pwa-install-guide
+
+まずこの部品を手元に持ってきて（`git clone` でもZIPのダウンロードでも構いません）、
+**README.md を最後まで読んでください。**
+
+読まずにコードだけ写さないでください。READMEには、実機で10回以上やり直して分かった
+「こうすると必ず失敗する」が書いてあります。**次の5つは、私が後から頼んでも変えないでください。**
+
+1. 手順を**時間で自動送りしない**（実機で必ずズレます）
+2. 帯は共有ボタンと**反対側**に置く（iPhoneは上・Androidは下）
+3. **画面全体を1色で塗らない**（ブラウザのバーまで染まって、押すボタンが見えなくなります）
+4. 共有シートの題名は `document.title` と `og:title` の**両方**を書き換える
+5. その題名は**15文字以内**（超えると「…」で切れて読めません）
+
+## 先に確かめてほしいこと
+
+この案内は、アプリが「ホーム画面に追加できる状態」でないと意味がありません。
+次の3つを調べて、**足りないものがあったら、何が足りなかったかを先に私に教えてから**用意してください。
+
+- `https://` で見られること（`http://` だと追加できません）
+- manifest（アプリの名前とアイコンを書いた設定ファイル）があること
+- service worker（通信をいったん受け取る仕組み）があること
+
+## 組み込みかた
+
+1. 私のアプリが **React なら**、`src/` の3ファイルをコピーして使ってください
+   （`InstallGuide.tsx` / `strings.ts` / `install-guide.css`）。
+   **React でないなら**、同じ判定・同じ文言・同じ配色・同じ制約で作り直して構いません。
+   ただし**画面の見た目と手順の中身は変えないでください。**
+
+2. `assets/` の画像を、私のアプリの公開フォルダにコピーし、`assetBase` にその場所を渡してください。
+   この画像はiPhone・Androidの画面写真で、**どのアプリでも共通です。撮り直しは要りません。**
+
+3. ページの `&lt;head&gt;` に manifest / apple-touch-icon / og:image / og:title を入れてください。
+   ⚠ `og:title` は部品が書き換えるので、**空でもいいので必ず置いてください。**
+
+4. 案内を閉じたあとに、**また開ける場所を2つ**作ってください。
+   - ×で閉じた**その瞬間**に、小さな入口に切り替わること
+   - メニューに「最初の設定」を**常に**置くこと
+
+5. 表示する言語は `lang` で選べます（日本語・やさしい日本語・英語・中国語・ベトナム語が入っています）。
+   私のアプリに合うものを選んでください。
+
+## 今回はやらなくていいこと
+
+- **「もう追加済みかどうか」をサーバーに記録する仕組みは、今回は作らないでください。**
+  ログインの仕組みがあるアプリ向けの、上級者向けの話です。
+  もし私のアプリにログインがあって作ったほうがいいと思ったら、
+  作る前に「作りますか？ はい／いいえ」と聞いてください。
+
+- **完成後のホーム画面アイコンの写真（`done-icon.png`）は、後で私が用意します。**
+  無くても動くように組み込んでください。
+
+## 終わったら、私にこう教えてください
+
+次の3つを、**1つずつ、押す場所まで**書いてください。
+
+1. パソコンの画面で確かめる方法（開くURLと、どこを見るか）
+2. 自分のiPhoneで確かめる方法
+3. 自分のAndroidで確かめる方法（持っていれば）
+
+そのうえで、次を箇条書きで報告してください。
+
+- 足したファイル・変えたファイル
+- 足りなくて用意したもの（https / manifest / service worker）
+- 迷って決めたところ
+- 私にまだ残っている作業
+
+## 最後に、あなた自身で確かめてほしいこと
+
+- 型チェックとビルドが通ること
+- **Androidで開いたときに、iPhone用の「Safariで開き直してください」が出ないこと**
+  （2026年8月に実際に起きた不具合です。Androidでは1回押すだけのボタン、
+  それが使えない端末では文字だけの3手順が**画面の下**に出るのが正しい形です）
+- 一番小さい画面（iPhone SEなど）でも手順が全部見えて、横スクロールが出ないこと
+- ⚠ **確かめるために作ったテスト用のファイルを、公開フォルダに残さないこと。**
+  そのまま世界に公開されてしまいます。
+<!-- PROMPT:END --></pre>
+        </div>
         <p class="copy-note">
-          書き方に迷ったら、「〇〇（自分のアプリ名）に、この部品を組み込んでください」くらいの
-          一言を先頭に足すだけでも十分です。細かい判断はAIが行い、専門的な質問があれば
-          選択肢の形で聞き返してくるはずです。
+          同じ文章は <a href="https://github.com/jagyamamoto/pwa-install-guide/blob/main/PROMPT.md">PROMPT.md</a>
+          にもあります。すでに運用中のアプリに入れる方や、もっと細かく指定したい方は
+          <a href="https://github.com/jagyamamoto/pwa-install-guide/blob/main/INTEGRATION.md">INTEGRATION.md</a>（上級者向け）をお使いください。
         </p>
       </li>
 
@@ -197,5 +267,28 @@
   </div>
 </footer>
 
+
+<script>
+// 依頼文のコピー。初心者が「全部選ぶ」で失敗しないように、ボタン1つで済ませる。
+document.addEventListener("click", function (e) {
+  var b = e.target.closest && e.target.closest(".copy-btn");
+  if (!b) return;
+  var el = document.querySelector(b.getAttribute("data-copy"));
+  if (!el) return;
+  var done = function () {
+    var was = b.textContent;
+    b.textContent = "コピーしました"; b.setAttribute("data-done", "1");
+    setTimeout(function () { b.textContent = was; b.removeAttribute("data-done"); }, 2000);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(el.textContent).then(done, function () { fallback(el, done); });
+  } else { fallback(el, done); }
+  function fallback(el, ok) {
+    var r = document.createRange(); r.selectNodeContents(el);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    try { document.execCommand("copy"); ok(); } catch (err) {}
+  }
+});
+</script>
 </body>
 </html>

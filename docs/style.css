@@ -169,6 +169,31 @@ table.data td.num, table.data th.num { font-variant-numeric: tabular-nums; font-
 .step-item h3 { font-size: 18px; margin-bottom: 8px; }
 .step-item p { margin: 0 0 12px; color: var(--ink-soft); }
 
+/* 依頼文の枠。長いので折り返して、高さを決めて中でスクロールさせる。
+   .code-block は white-space:pre なので、長文だと横に延々と流れて読めない。 */
+.prompt-wrap { position: relative; margin: 14px 0; }
+.prompt-box {
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.75;
+  background: var(--paper-deep); border: 1px solid var(--line, #e2dbc7);
+  border-radius: 10px; margin: 0;
+  /* 上を広くあけてコピーボタンの下に文字が入らないようにする */
+  padding: 48px 16px 16px;
+  white-space: pre-wrap;
+  /* ⚠ 長いURLは overflow-wrap:anywhere でないと折り返らず、枠が横に流れる。
+     word-break:break-word は効きが環境で違う。 */
+  overflow-wrap: anywhere;
+  max-height: 24em; overflow-y: auto;
+}
+.copy-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 1;
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  border: 1px solid currentColor; border-radius: 999px; padding: 5px 12px;
+  background: var(--card, #fff); color: inherit;
+}
+.copy-btn:hover { background: var(--paper, #f6f2e7); }
+.copy-btn:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
+.copy-btn[data-done="1"] { border-color: #0a7a3d; color: #0a7a3d; }
+
 .code-block {
   font-family: var(--font-mono); font-size: 13.5px; line-height: 1.7;
   background: #1a1a12; color: #f0edd8; border-radius: 10px; padding: 16px 18px;
