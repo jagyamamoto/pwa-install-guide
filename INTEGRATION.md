@@ -17,7 +17,7 @@ AI（Claude Code / Codex など）にそのまま渡せます。
 
 ## 使う部品
 
-`Jag's PWA installer`（https://github.com/jagyamamoto/pwa-install-guide）
+`Jag PWA installer`（https://github.com/jagyamamoto/pwa-install-guide）
 
 **まず README.md を全部読んでください。** 実機で測った数値と、失敗して捨てた実装が
 書いてあります。コードだけ写すと同じ失敗を繰り返します。特に次の5つは変更禁止です。

@@ -24,7 +24,7 @@ Claude Code や Codex に、**そのままコピーして貼り付けるだけ**
 
 ## 使う部品
 
-Jag's PWA installer — https://github.com/jagyamamoto/pwa-install-guide
+Jag PWA installer — https://github.com/jagyamamoto/pwa-install-guide
 
 まずこの部品を手元に持ってきて（`git clone` でもZIPのダウンロードでも構いません）、
 **README.md を最後まで読んでください。**
