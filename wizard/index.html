@@ -22,22 +22,23 @@ window.addEventListener("error", function (e) {
   .lead { color: var(--ink-soft, #52544a); margin: 0 0 20px; }
   .field { margin: 0 0 16px; }
   .field > label { display: block; font-weight: 700; margin-bottom: 6px; }
-  .field input[type="text"], .field input[type="url"] { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1.5px solid var(--border, #e2dbc7); border-radius: 10px; background: #fff; }
+  /* ⚠ 背景を固定色にする所は文字色も固定する。親サイトのダークモードが文字を白にするため、黄色や白の上で読めなくなった。 */
+  .field input[type="text"], .field input[type="url"] { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1.5px solid var(--border, #e2dbc7); border-radius: 10px; background: #fff; color: #1c1d16; }
   .choices { display: flex; gap: 8px; flex-wrap: wrap; }
-  .choices label { flex: 1 1 160px; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 2px solid var(--border, #e2dbc7); border-radius: 12px; background: #fff; font-weight: 700; font-size: 14.5px; }
+  .choices label { flex: 1 1 160px; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 2px solid var(--border, #e2dbc7); border-radius: 12px; background: #fff; color: #1c1d16; font-weight: 700; font-size: 14.5px; }
   .choices input { width: 18px; height: 18px; }
-  .choices label:has(input:checked) { border-color: #1c1d16; background: #ffd400; }
+  .choices label:has(input:checked) { border-color: #1c1d16; background: #ffd400; color: #1c1d16; }
   .choices label:has(input:focus-visible) { outline: 3px solid #1c1d16; outline-offset: 2px; }
   .summary { font-size: 14px; color: var(--ink-soft, #52544a); background: var(--paper-deep, #efe8d8); border-radius: 12px; padding: 10px 14px; margin: 0 0 14px; }
   .warn { background: #fbeae7; border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
   .warn[hidden] { display: none; }
   .prompt-wrap { position: relative; margin: 12px 0; }
   .prompt-box { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; line-height: 1.75; background: var(--paper-deep, #efe8d8); border: 1px solid var(--border, #e2dbc7); border-radius: 10px; padding: 48px 16px 16px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28em; overflow-y: auto; }
-  .copy-btn { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; border: 1px solid currentColor; border-radius: 999px; padding: 5px 12px; background: #fff; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; border: 1px solid #1c1d16; border-radius: 999px; padding: 5px 12px; background: #fff; color: #1c1d16; }
   .copy-btn[data-done="1"] { border-color: #0a7a3d; color: #0a7a3d; }
   ol.verify { padding-left: 1.2em; } ol.verify h4 { margin: 14px 0 4px; font-size: 15.5px; } ol.verify ul { margin: 0 0 6px; padding-left: 1.2em; } ol.verify li li { margin: 4px 0; font-size: 14.5px; }
   .foot { font-size: 12.5px; color: var(--muted, #6f6d5e); margin-top: 32px; }
-  .mini { font: inherit; font-size: 13px; background: none; border: 1px solid var(--border, #e2dbc7); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+  .mini { font: inherit; font-size: 13px; background: none; color: inherit; border: 1px solid var(--border, #e2dbc7); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
 </style>
 </head>
 <body>
