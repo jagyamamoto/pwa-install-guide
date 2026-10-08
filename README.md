@@ -218,6 +218,18 @@ URLに `?openExternalBrowser=1` を付ける。LINEはこれを見て、アプ�
 はじめて使う方向けの手順は [はじめ方ページ](https://jagyamamoto.github.io/pwa-install-guide/getting-started.html) にまとめました。
 gitもAIコーディングも初めての方でも、上から順に進めれば組み込みまでたどり着けます。
 
+## 組み込みウィザード（登録制の手引き用の頭脳）
+
+`wizard/` に、7 つの質問から**自分向けの依頼文**を作るウィザードがあります。
+公開サイト（docs/）には載せていません。登録制の手引き（jagutilities.jagproject.com/pwa-installer）へ
+**写して固定**して使います（写した側は commit・`CORE_VERSION`・sha256 を控える）。
+
+- 頭脳: `wizard/pwa-wizard-core.js`（生成の中身はここにしか無い。「変更禁止 5 つ」などの文面は `PROMPT.md` と一字一句同じ）
+- 画面: `wizard/index.html` ＋ `wizard/pwa-wizard.js`（見た目は写した側で自由に）
+- 検査: `node tools/check-wizard-sync.mjs`（PROMPT.md との照合＋全 1,620 通りを実行）
+
+`PROMPT.md` を直したら、頭脳の同じ塊も直し、`CORE_VERSION` を上げてください。
+
 ## ライセンス
 
 MIT License（[LICENSE](LICENSE)）。改変・商用利用ともに自由です。サポート・動作保証はありません。

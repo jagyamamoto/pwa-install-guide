@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>組み込みウィザード | Jag PWA installer</title>
+<meta name="description" content="7つの質問に答えると、自分のWebアプリに Jag PWA installer を組み込むための、あなた向けの依頼文ができます。">
+<meta name="robots" content="noindex">
+<!-- ⚠ このページは公開サイト(docs/)には載せない。登録制の手引き(jagutilities)へ写して使う。
+     見た目は写した側で自由に。生成の中身は pwa-wizard-core.js にしか無い。 -->
+<link rel="stylesheet" href="../docs/style.css">
+<script>
+window.addEventListener("error", function (e) {
+  window.__wzErr = (e.message || "") + " @ " + (e.filename || "").split("/").pop() + ":" + e.lineno;
+  var n = document.getElementById("wz-broken"); if (n) { n.hidden = false; n.querySelector("code").textContent = window.__wzErr; }
+});
+</script>
+<style>
+  .prose { max-width: 760px; margin: 0 auto; padding: 32px 20px 56px; }
+  .prose h1 { font-size: 30px; line-height: 1.3; margin: 0 0 10px; }
+  .prose h2 { font-size: 20px; font-weight: 800; margin: 36px 0 12px; }
+  .lead { color: var(--ink-soft, #52544a); margin: 0 0 20px; }
+  .field { margin: 0 0 16px; }
+  .field > label { display: block; font-weight: 700; margin-bottom: 6px; }
+  .field input[type="text"], .field input[type="url"] { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1.5px solid var(--border, #e2dbc7); border-radius: 10px; background: #fff; }
+  .choices { display: flex; gap: 8px; flex-wrap: wrap; }
+  .choices label { flex: 1 1 160px; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 2px solid var(--border, #e2dbc7); border-radius: 12px; background: #fff; font-weight: 700; font-size: 14.5px; }
+  .choices input { width: 18px; height: 18px; }
+  .choices label:has(input:checked) { border-color: #1c1d16; background: #ffd400; }
+  .choices label:has(input:focus-visible) { outline: 3px solid #1c1d16; outline-offset: 2px; }
+  .summary { font-size: 14px; color: var(--ink-soft, #52544a); background: var(--paper-deep, #efe8d8); border-radius: 12px; padding: 10px 14px; margin: 0 0 14px; }
+  .warn { background: #fbeae7; border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+  .warn[hidden] { display: none; }
+  .prompt-wrap { position: relative; margin: 12px 0; }
+  .prompt-box { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; line-height: 1.75; background: var(--paper-deep, #efe8d8); border: 1px solid var(--border, #e2dbc7); border-radius: 10px; padding: 48px 16px 16px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28em; overflow-y: auto; }
+  .copy-btn { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; border: 1px solid currentColor; border-radius: 999px; padding: 5px 12px; background: #fff; }
+  .copy-btn[data-done="1"] { border-color: #0a7a3d; color: #0a7a3d; }
+  ol.verify { padding-left: 1.2em; } ol.verify h4 { margin: 14px 0 4px; font-size: 15.5px; } ol.verify ul { margin: 0 0 6px; padding-left: 1.2em; } ol.verify li li { margin: 4px 0; font-size: 14.5px; }
+  .foot { font-size: 12.5px; color: var(--muted, #6f6d5e); margin-top: 32px; }
+  .mini { font: inherit; font-size: 13px; background: none; border: 1px solid var(--border, #e2dbc7); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<main class="prose">
+  <span class="eyebrow">質問に答えるだけ</span>
+  <h1>自分のWebアプリに、<br>Jag PWA installer を組み込む依頼文を作る</h1>
+  <p class="lead">7つに答えると、あなたの作り・パソコン・使うAIに合わせた依頼文ができます。<strong>有料のAIがあれば AI が組み込みます。無料のチャットAIなら、あなたが1つずつ進めるための案内役になります。</strong>入れた内容はこのブラウザにだけ残ります。</p>
+
+  <div class="warn" id="wz-broken" hidden>
+    <strong>うまく動いていません。</strong> ページを再読み込みしてください。直らない場合は下の文字を添えて知らせてください。<br><code></code>
+  </div>
+
+  <h2>1. あなたのこと</h2>
+  <div id="questions"></div>
+  <div class="field"><label for="f-appName">アプリの名前（共有の画面の題名にも使います）</label><input type="text" id="f-appName" placeholder="例: みどり町会"></div>
+  <div class="warn" id="title-warn" hidden>⚠ アプリの名前が <strong>15文字</strong> を超えています。共有の画面の題名は15文字を超えると「…」で切れます。依頼文に「短い題名を先に決める」を入れました。</div>
+  <div class="field"><label for="f-appUrl">アプリの住所（URL・分かれば）</label><input type="url" id="f-appUrl" placeholder="例: https://app.example.jp/"></div>
+
+  <h2>2. できあがった依頼文</h2>
+  <div class="summary" id="summary"></div>
+  <p data-only="paid">そのまま全部コピーして、AIのチャット欄に貼ってEnter。書き換えるところはありません。</p>
+  <p data-only="free">無料のチャットAIはファイルを書き換えられません。この文を貼ると、<strong>あなたが次に何をすればよいかを1つずつ</strong>教えてくれます。</p>
+  <div class="prompt-wrap"><button type="button" class="copy-btn" data-copy="#out-prompt">依頼文をコピー</button><pre class="prompt-box" id="out-prompt"></pre></div>
+
+  <h2>3. 詰まったときに貼る文</h2>
+  <p>【】を埋めて貼ってください。</p>
+  <div class="prompt-wrap"><button type="button" class="copy-btn" data-copy="#out-chat">コピー</button><pre class="prompt-box" id="out-chat" style="max-height: 16em;"></pre></div>
+
+  <h2>4. できたら、手元で確かめること</h2>
+  <ol class="verify" id="verify"></ol>
+
+  <p class="foot">頭脳の版: <span id="core-version"></span> ・ <button type="button" class="mini" id="reset">答えを消して最初から</button></p>
+</main>
+<script src="pwa-wizard-core.js"></script>
+<script src="pwa-wizard.js"></script>
+</body>
+</html>
